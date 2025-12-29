@@ -29,7 +29,7 @@ spring:
         options:
           model: llama-3.3-70b-versatile
           temperature: 0.5
-          max-tokens: 500
+          max-tokens: 800
 
 springdoc:
   swagger-ui:

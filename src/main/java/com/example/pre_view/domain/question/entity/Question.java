@@ -47,14 +47,22 @@ public class Question extends BaseEntity {
 
     private boolean isFollowUp;
 
+    @Column(nullable = false)
+    private boolean isAnswered = false;
+
     @Builder
     public Question(String content, Interview interview, InterviewPhase phase, 
-                    Integer sequence, Question parentQuestion, boolean isFollowUp) {
+                    Integer sequence, Question parentQuestion, boolean isFollowUp, Boolean isAnswered) {
         this.content = content;
         this.interview = interview;
         this.phase = phase;
         this.sequence = sequence;
         this.parentQuestion = parentQuestion;
         this.isFollowUp = isFollowUp;
+        this.isAnswered = isAnswered != null ? isAnswered : false;
+    }
+
+    public void markAsAnswered() {
+        this.isAnswered = true;
     }
 }

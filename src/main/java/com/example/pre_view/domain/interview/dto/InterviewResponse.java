@@ -22,9 +22,17 @@ public record InterviewResponse(
     InterviewStatus status,
     InterviewPhase currentPhase,
     String currentPhaseDescription,
-    Integer totalQuestions
+    Integer totalQuestions,
+    Boolean hasResume,
+    Boolean hasPortfolio
 ) {
     public static InterviewResponse from(Interview interview) {
+        Boolean hasResume = interview.getResumeText() != null 
+                && !interview.getResumeText().isBlank();
+        
+        Boolean hasPortfolio = interview.getPortfolioText() != null 
+                && !interview.getPortfolioText().isBlank();
+        
         return new InterviewResponse(
             interview.getId(), 
             interview.getTitle(),
@@ -38,7 +46,9 @@ public record InterviewResponse(
             interview.getStatus(),
             interview.getCurrentPhase(),
             interview.getCurrentPhase() != null ? interview.getCurrentPhase().getDescription() : null,
-            interview.getTotalQuestions()
+            interview.getTotalQuestions(),
+            hasResume,
+            hasPortfolio
         );
     }
 }

@@ -10,7 +10,8 @@ public record QuestionResponse(
     String phaseDescription,
     Integer sequence,
     boolean isFollowUp,
-    Long parentQuestionId
+    Long parentQuestionId,
+    boolean isAnswered
 ) {
     public static QuestionResponse from(Question question) {
         return new QuestionResponse(
@@ -20,7 +21,8 @@ public record QuestionResponse(
             question.getPhase().getDescription(),
             question.getSequence(),
             question.isFollowUp(),
-            question.getParentQuestion() != null ? question.getParentQuestion().getId() : null
+            question.getParentQuestion() != null ? question.getParentQuestion().getId() : null,
+            question.isAnswered()
         );
     }
 }

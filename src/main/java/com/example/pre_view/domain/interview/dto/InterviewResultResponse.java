@@ -43,7 +43,7 @@ public record InterviewResultResponse(
         public static QuestionAnswerDto of(Question question, Answer answer) {
             return new QuestionAnswerDto(
                 question.getId(),
-                question.getSequence(),
+                question.getSequence() != null ? question.getSequence() : 0,
                 question.getPhase(),
                 question.getPhase().getDescription(),
                 question.getContent(),
