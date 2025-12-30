@@ -20,9 +20,6 @@ public enum InterviewType {
     )),
     PERSONALITY("인성 면접", List.of(
         InterviewPhase.PERSONALITY
-    )),
-    QUICK("빠른 면접", List.of(
-        InterviewPhase.TECHNICAL
     ));
 
     private final String description;

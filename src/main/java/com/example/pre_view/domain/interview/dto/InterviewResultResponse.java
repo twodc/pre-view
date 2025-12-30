@@ -60,8 +60,15 @@ public record InterviewResultResponse(
             List<Answer> answers, 
             AiReportResponse aiReport
     ) {
+        // 같은 questionId에 여러 Answer가 있을 경우, 가장 최근 답변을 사용
+        // question이 null인 경우는 제외
         Map<Long, Answer> answerByQuestionId = answers.stream()
-                .collect(Collectors.toMap(a -> a.getQuestion().getId(), a -> a));
+                .filter(a -> a.getQuestion() != null)
+                .collect(Collectors.toMap(
+                    a -> a.getQuestion().getId(), 
+                    a -> a,
+                    (existing, replacement) -> replacement  // 중복 키가 있으면 새로운 값으로 교체
+                ));
 
         int answeredCount = (int) answers.stream()
                 .filter(a -> a.getContent() != null)

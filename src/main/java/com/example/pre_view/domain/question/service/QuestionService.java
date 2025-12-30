@@ -102,19 +102,34 @@ public class QuestionService {
 
         List<Question> existingQuestions = questionRepository.findByInterviewIdOrderBySequence(interview.getId());
 
-        // 현재 단계가 AI 질문 단계이고, 해당 단계에 질문이 없으면 생성
+        // 현재 단계가 AI 질문 단계이고, 해당 단계의 질문이 부족하면 생성
         InterviewPhase currentPhase = interview.getCurrentPhase();
         if (currentPhase != null && !currentPhase.isTemplate()) {
-            boolean hasPhaseQuestion = existingQuestions.stream()
-                    .anyMatch(q -> q.getPhase() == currentPhase && !q.isFollowUp());
-
-            if (!hasPhaseQuestion) {
-                log.info("현재 단계 AI 질문 생성 시작 - interviewId: {}, phase: {}", interviewId, currentPhase);
-                Question aiQuestion = generateAiQuestionInNewTransaction(interview, currentPhase, existingQuestions);
-                if (aiQuestion != null) {
-                    existingQuestions.add(aiQuestion);
-                    log.info("AI 질문 생성 완료 - interviewId: {}, phase: {}, questionId: {}",
-                            interviewId, currentPhase, aiQuestion.getId());
+            // 현재 단계의 질문 수 확인 (Follow-up 제외)
+            long currentPhaseQuestionCount = existingQuestions.stream()
+                    .filter(q -> q.getPhase() == currentPhase && !q.isFollowUp())
+                    .count();
+            
+            // 필요한 질문 수 (defaultQuestionCount)
+            int requiredQuestionCount = currentPhase.getDefaultQuestionCount();
+            
+            // 부족한 질문 수만큼 생성
+            if (currentPhaseQuestionCount < requiredQuestionCount) {
+                int questionsToGenerate = (int) (requiredQuestionCount - currentPhaseQuestionCount);
+                log.info("현재 단계 AI 질문 생성 시작 - interviewId: {}, phase: {}, 필요: {}개, 현재: {}개, 생성: {}개", 
+                        interviewId, currentPhase, requiredQuestionCount, currentPhaseQuestionCount, questionsToGenerate);
+                
+                for (int i = 0; i < questionsToGenerate; i++) {
+                    Question aiQuestion = generateAiQuestionInNewTransaction(interview, currentPhase, existingQuestions);
+                    if (aiQuestion != null) {
+                        existingQuestions.add(aiQuestion);
+                        log.info("AI 질문 생성 완료 - interviewId: {}, phase: {}, questionId: {}, {}/{}",
+                                interviewId, currentPhase, aiQuestion.getId(), i + 1, questionsToGenerate);
+                    } else {
+                        log.warn("AI 질문 생성 실패 - interviewId: {}, phase: {}, {}/{}",
+                                interviewId, currentPhase, i + 1, questionsToGenerate);
+                        break; // 생성 실패 시 중단
+                    }
                 }
             }
         }

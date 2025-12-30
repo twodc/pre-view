@@ -1,5 +1,7 @@
 package com.example.pre_view.domain.answer.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,11 +12,13 @@ import com.example.pre_view.domain.answer.dto.AnswerCreateRequest;
 import com.example.pre_view.domain.answer.dto.AnswerResponse;
 import com.example.pre_view.domain.answer.entity.Answer;
 import com.example.pre_view.domain.answer.repository.AnswerRepository;
+import com.example.pre_view.domain.interview.entity.Interview;
 import com.example.pre_view.domain.interview.enums.InterviewPhase;
 import com.example.pre_view.domain.interview.service.AiInterviewService;
 import com.example.pre_view.domain.question.dto.QuestionResponse;
 import com.example.pre_view.domain.question.entity.Question;
 import com.example.pre_view.domain.question.repository.QuestionRepository;
+import com.example.pre_view.domain.question.service.QuestionService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +31,7 @@ public class AnswerService {
     private final AnswerRepository answerRepository;
     private final QuestionRepository questionRepository;
     private final AiInterviewService aiInterviewService;
+    private final QuestionService questionService;
 
     /**
      * 답변 생성 및 AI 피드백 처리
@@ -126,7 +131,79 @@ public class AnswerService {
             }
         }
 
+        // 현재 단계의 모든 질문(Follow-up 제외)에 답변이 완료되었는지 확인하고, 완료되면 다음 단계로 전환
+        checkAndMoveToNextPhase(question.getInterview(), question.getPhase());
+
         return AnswerResponse.from(savedAnswer);
+    }
+
+    /**
+     * 현재 단계의 모든 질문에 답변이 완료되었는지 확인하고, 완료되면 다음 단계로 전환
+     * 다음 단계가 AI 질문 단계인 경우 자동으로 질문을 생성합니다.
+     * 
+     * @param interview 면접 엔티티
+     * @param currentPhase 현재 면접 단계
+     */
+    private void checkAndMoveToNextPhase(Interview interview, InterviewPhase currentPhase) {
+        // 현재 단계의 모든 질문 조회 (Follow-up 제외)
+        List<Question> phaseQuestions = questionRepository
+                .findByInterviewIdOrderBySequence(interview.getId())
+                .stream()
+                .filter(q -> q.getPhase() == currentPhase && !q.isFollowUp())
+                .toList();
+
+        // 모든 질문에 답변이 완료되었는지 확인
+        boolean allAnswered = phaseQuestions.stream()
+                .allMatch(Question::isAnswered);
+
+        if (allAnswered && !phaseQuestions.isEmpty()) {
+            log.info("현재 단계의 모든 질문 완료 - interviewId: {}, phase: {}, 질문 수: {}", 
+                    interview.getId(), currentPhase, phaseQuestions.size());
+            
+            // 다음 단계로 전환 (마지막 단계가 아니고, 현재 단계가 마지막 단계가 아닌 경우)
+            if (!interview.isLastPhase() && interview.getCurrentPhase() == currentPhase) {
+                InterviewPhase previousPhase = interview.getCurrentPhase();
+                interview.nextPhase();
+                InterviewPhase nextPhase = interview.getCurrentPhase();
+                log.info("면접 단계 전환 완료 - interviewId: {}, 이전 단계: {}, 새 단계: {}", 
+                        interview.getId(), previousPhase, nextPhase);
+                
+                // 다음 단계가 AI 질문 단계이고 질문이 부족하면 자동으로 생성
+                if (nextPhase != null && !nextPhase.isTemplate()) {
+                    List<Question> allQuestions = questionRepository
+                            .findByInterviewIdOrderBySequence(interview.getId());
+                    
+                    // 다음 단계의 질문 수 확인 (Follow-up 제외)
+                    long nextPhaseQuestionCount = allQuestions.stream()
+                            .filter(q -> q.getPhase() == nextPhase && !q.isFollowUp())
+                            .count();
+                    
+                    // 필요한 질문 수 (defaultQuestionCount)
+                    int requiredQuestionCount = nextPhase.getDefaultQuestionCount();
+                    
+                    // 부족한 질문 수만큼 생성
+                    if (nextPhaseQuestionCount < requiredQuestionCount) {
+                        int questionsToGenerate = (int) (requiredQuestionCount - nextPhaseQuestionCount);
+                        log.info("다음 단계 AI 질문 자동 생성 시작 - interviewId: {}, phase: {}, 필요: {}개, 현재: {}개, 생성: {}개", 
+                                interview.getId(), nextPhase, requiredQuestionCount, nextPhaseQuestionCount, questionsToGenerate);
+                        
+                        for (int i = 0; i < questionsToGenerate; i++) {
+                            Question aiQuestion = questionService.generateAiQuestionInNewTransaction(
+                                    interview, nextPhase, allQuestions);
+                            if (aiQuestion != null) {
+                                allQuestions.add(aiQuestion);
+                                log.info("다음 단계 AI 질문 자동 생성 완료 - interviewId: {}, phase: {}, questionId: {}, {}/{}", 
+                                        interview.getId(), nextPhase, aiQuestion.getId(), i + 1, questionsToGenerate);
+                            } else {
+                                log.warn("다음 단계 AI 질문 생성 실패 - interviewId: {}, phase: {}, {}/{}", 
+                                        interview.getId(), nextPhase, i + 1, questionsToGenerate);
+                                break; // 생성 실패 시 중단
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private int getNextSequence(Long interviewId) {

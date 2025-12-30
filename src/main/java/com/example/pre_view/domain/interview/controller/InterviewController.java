@@ -79,9 +79,9 @@ public class InterviewController {
     @GetMapping
     @Operation(summary = "면접 목록 조회", description = "전체 면접 목록을 페이징하여 조회합니다.")
     public ResponseEntity<ApiResponse<Page<InterviewResponse>>> getInterviews(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy
     ) {
         log.info("면접 목록 조회 API 호출 - page: {}, size: {}, sortBy: {}", page, size, sortBy);
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
