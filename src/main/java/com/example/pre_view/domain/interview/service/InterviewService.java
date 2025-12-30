@@ -1,8 +1,9 @@
 package com.example.pre_view.domain.interview.service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -97,13 +98,13 @@ public class InterviewService {
     }
 
     @Transactional(readOnly = true)
-    public List<InterviewResponse> getInterviews() {
-        log.debug("면접 목록 조회 시작");
-        List<InterviewResponse> responses = interviewRepository.findAllActive().stream()
-                .map(InterviewResponse::from)
-                .collect(Collectors.toList());
-        log.info("면접 목록 조회 완료 - 총 {}개", responses.size());
-        return responses;
+    public Page<InterviewResponse> getInterviews(Pageable pageable) {
+        log.debug("면접 목록 조회 시작 - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
+        Page<InterviewResponse> responsePage = interviewRepository.findAllActive(pageable)
+                .map(InterviewResponse::from);
+        log.info("면접 목록 조회 완료 - 총 {}개 (전체: {}개)", 
+                responsePage.getNumberOfElements(), responsePage.getTotalElements());
+        return responsePage;
     }
 
     @Transactional
@@ -133,8 +134,10 @@ public class InterviewService {
                     return new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND);
                 });
 
-        List<Question> questions = questionRepository.findByInterviewId(interview.getId());
-        List<Answer> answers = answerRepository.findByInterviewId(interview.getId());
+        List<Question> questions = questionRepository
+                .findByInterviewIdOrderBySequence(interview.getId());
+        List<Answer> answers = answerRepository
+                .findByInterviewIdWithQuestion(interview.getId());
         log.debug("면접 데이터 조회 완료 - interviewId: {}, 질문: {}개, 답변: {}개",
                 id, questions.size(), answers.size());
 

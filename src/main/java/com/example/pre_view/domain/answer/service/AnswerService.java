@@ -38,8 +38,8 @@ public class AnswerService {
     public AnswerResponse createAnswer(Long questionId, AnswerCreateRequest request) {
         log.info("답변 생성 시작 - questionId: {}", questionId);
         
-        // 1단계: 질문 조회 (트랜잭션 없이 조회)
-        Question question = questionRepository.findById(questionId)
+        // 1단계: 질문 조회 (interview까지 함께 조회 - N+1 문제 해결)
+        Question question = questionRepository.findByIdWithInterview(questionId)
                 .orElseThrow(() -> {
                     log.warn("질문을 찾을 수 없음 - questionId: {}", questionId);
                     return new BusinessException(ErrorCode.QUESTION_NOT_FOUND);
@@ -130,6 +130,6 @@ public class AnswerService {
     }
 
     private int getNextSequence(Long interviewId) {
-        return questionRepository.findByInterviewIdOrderBySequence(interviewId).size() + 1;
+        return questionRepository.countByInterviewId(interviewId) + 1;
     }
 }

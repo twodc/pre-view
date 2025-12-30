@@ -9,6 +9,10 @@ import org.springframework.data.repository.query.Param;
 import com.example.pre_view.domain.answer.entity.Answer;
 
 public interface AnswerRepository extends JpaRepository<Answer, Long> {
-    @Query("SELECT a FROM Answer a WHERE a.question.interview.id = :interviewId")
-    List<Answer> findByInterviewId(@Param("interviewId") Long interviewId);
+    
+    @Query("SELECT a FROM Answer a " +
+           "JOIN FETCH a.question q " +
+           "WHERE q.interview.id = :interviewId " +
+           "ORDER BY q.sequence ASC, a.createdAt ASC")
+    List<Answer> findByInterviewIdWithQuestion(@Param("interviewId") Long interviewId);
 }

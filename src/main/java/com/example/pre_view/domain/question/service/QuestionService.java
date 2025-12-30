@@ -167,7 +167,7 @@ public class QuestionService {
             String context = buildContext(interview);
 
             // 이전 답변들을 가져와서 컨텍스트에 추가 (더 개인화된 질문 생성)
-            List<Answer> previousAnswers = answerRepository.findByInterviewId(interview.getId());
+            List<Answer> previousAnswers = answerRepository.findByInterviewIdWithQuestion(interview.getId());
             List<String> previousAnswerTexts = previousAnswers.stream()
                     .map(Answer::getContent)
                     .toList();

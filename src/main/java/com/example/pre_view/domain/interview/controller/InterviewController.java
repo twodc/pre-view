@@ -1,7 +1,9 @@
 package com.example.pre_view.domain.interview.controller;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -75,12 +77,18 @@ public class InterviewController {
     }
 
     @GetMapping
-    @Operation(summary = "면접 목록 조회", description = "전체 면접 목록을 조회합니다.")
-    public ResponseEntity<ApiResponse<List<InterviewResponse>>> getInterviews() {
-        log.info("면접 목록 조회 API 호출");
-        List<InterviewResponse> responses = interviewService.getInterviews();
-        log.info("면접 목록 조회 완료 - 총 {}개", responses.size());
-        return ResponseEntity.ok(ApiResponse.ok(responses));
+    @Operation(summary = "면접 목록 조회", description = "전체 면접 목록을 페이징하여 조회합니다.")
+    public ResponseEntity<ApiResponse<Page<InterviewResponse>>> getInterviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy
+    ) {
+        log.info("면접 목록 조회 API 호출 - page: {}, size: {}, sortBy: {}", page, size, sortBy);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
+        Page<InterviewResponse> responsePage = interviewService.getInterviews(pageable);
+        log.info("면접 목록 조회 완료 - 총 {}개 (전체: {}개)", 
+                responsePage.getNumberOfElements(), responsePage.getTotalElements());
+        return ResponseEntity.ok(ApiResponse.ok(responsePage));
     }
 
     @GetMapping("/{id}/questions")
