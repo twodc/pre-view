@@ -179,27 +179,25 @@ public class InterviewService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     private void completeInterviewIfNeeded(Long id, Interview interview) {
-        Interview latestInterview = interviewRepository.findByIdAndNotDeleted(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND));
-        
-        if (latestInterview.getStatus() != InterviewStatus.DONE) {
-            latestInterview.complete();
-            log.info("면접 완료 처리 - interviewId: {}", id);
+        try {
+            // 최신 상태를 다시 조회하여 낙관적 락 버전 확인
+            Interview latestInterview = interviewRepository.findByIdAndNotDeleted(id)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND));
+            
+            if (latestInterview.getStatus() != InterviewStatus.DONE) {
+                latestInterview.complete();
+                log.info("면접 완료 처리 - interviewId: {}", id);
+            }
+        } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+            log.warn("면접 완료 처리 중 동시성 충돌 발생 - interviewId: {}", id);
+            throw e;
         }
     }
 
-    /**
-     * 이력서 업로드는 FileUploadService에 위임
-     * FileUploadService에 이미 @Transactional이 있으므로 중복 제거
-     */
     public InterviewResponse uploadResume(Long interviewId, MultipartFile file) {
         return fileUploadService.uploadResume(interviewId, file);
     }
 
-    /**
-     * 포트폴리오 업로드는 FileUploadService에 위임
-     * FileUploadService에 이미 @Transactional이 있으므로 중복 제거
-     */
     public InterviewResponse uploadPortfolio(Long interviewId, MultipartFile file) {
         return fileUploadService.uploadPortfolio(interviewId, file);
     }

@@ -1,5 +1,6 @@
 package com.example.pre_view.common.exception;
 
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,6 +27,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .badRequest()
                 .body(ErrorResponse.of(ErrorCode.INVALID_INPUT, message));
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
+            ObjectOptimisticLockingFailureException e) {
+        log.warn("낙관적 락 실패 - 동시성 충돌 발생: {}", e.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.CONCURRENT_MODIFICATION.getStatus())
+                .body(ErrorResponse.of(ErrorCode.CONCURRENT_MODIFICATION));
     }
 
     @ExceptionHandler(Exception.class)

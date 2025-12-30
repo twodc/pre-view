@@ -20,6 +20,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -67,6 +68,14 @@ public class Interview extends BaseEntity {
     private InterviewPhase currentPhase;
 
     private Integer totalQuestions;
+
+    /**
+     * 낙관적 락을 위한 버전 필드
+     * 동시에 면접 상태를 변경하는 것을 방지합니다.
+     */
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     @Builder
     public Interview(String title, InterviewType type, Position position, ExperienceLevel level,

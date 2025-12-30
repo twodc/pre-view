@@ -16,6 +16,7 @@ public enum ErrorCode {
     // Interview
     INTERVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "면접을 찾을 수 없습니다."),
     INVALID_INTERVIEW_STATUS(HttpStatus.BAD_REQUEST, "I002", "현재 면접 상태에서는 해당 작업을 수행할 수 없습니다."),
+    CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "I003", "동시에 수정되어 처리할 수 없습니다. 다시 시도해주세요."),
 
     // Question
     QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "질문을 찾을 수 없습니다."),
