@@ -1,4 +1,4 @@
-package com.example.pre_view.domain.interview.service;
+package com.example.pre_view.domain.question.service;
 
 import java.util.List;
 
@@ -17,6 +17,7 @@ public class QuestionTemplateService {
 
     /**
      * 단계별 고정 템플릿 질문을 반환
+     * 
      * @param phase 면접 단계
      * @return 해당 단계의 템플릿 질문 목록
      */
@@ -40,3 +41,4 @@ public class QuestionTemplateService {
         };
     }
 }
+

@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/interviews")
+@RequestMapping("/api/v1/interviews")
 @RequiredArgsConstructor
 @Tag(name = "Interview", description = "면접 API")
 public class InterviewController {
