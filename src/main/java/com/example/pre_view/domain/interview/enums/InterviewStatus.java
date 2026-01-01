@@ -4,6 +4,5 @@ public enum InterviewStatus {
     READY,
     IN_PROGRESS,
     DONE,
-    CANCELLED,
 }
 

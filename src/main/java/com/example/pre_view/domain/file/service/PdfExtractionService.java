@@ -32,12 +32,9 @@ public class PdfExtractionService {
      */
     public String extractText(MultipartFile file) {
         log.debug("PDF 텍스트 추출 시작 - 파일명: {}, 크기: {} bytes", file.getOriginalFilename(), file.getSize());
-
-        // 파일 유효성 검증
         validateFile(file);
 
         try (InputStream inputStream = file.getInputStream()) {
-            // PDFBox 3.0.1에서는 Loader를 사용하여 로드
             byte[] pdfBytes = inputStream.readAllBytes();
             PDDocument document = org.apache.pdfbox.Loader.loadPDF(pdfBytes);
             

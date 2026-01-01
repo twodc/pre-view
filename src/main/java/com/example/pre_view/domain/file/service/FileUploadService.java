@@ -36,23 +36,7 @@ public class FileUploadService {
     @Transactional
     public InterviewResponse uploadResume(Long interviewId, MultipartFile file) {
         log.info("이력서 업로드 시작 - interviewId: {}, 파일명: {}", interviewId, file.getOriginalFilename());
-
-        Interview interview = interviewRepository.findByIdAndNotDeleted(interviewId)
-                .orElseThrow(() -> {
-                    log.warn("면접을 찾을 수 없음 - interviewId: {}", interviewId);
-                    return new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND);
-                });
-
-        // PDF에서 텍스트 추출
-        String resumeText = pdfExtractionService.extractText(file);
-
-        // 면접 엔티티에 텍스트 저장
-        interview.updateResumeText(resumeText);
-
-        log.info("이력서 업로드 완료 - interviewId: {}, 추출된 텍스트 길이: {} 문자",
-                interviewId, resumeText.length());
-
-        return InterviewResponse.from(interview);
+        return uploadFile(interviewId, file, "이력서", Interview::updateResumeText);
     }
 
     /**
@@ -65,23 +49,36 @@ public class FileUploadService {
     @Transactional
     public InterviewResponse uploadPortfolio(Long interviewId, MultipartFile file) {
         log.info("포트폴리오 업로드 시작 - interviewId: {}, 파일명: {}", interviewId, file.getOriginalFilename());
+        return uploadFile(interviewId, file, "포트폴리오", Interview::updatePortfolioText);
+    }
 
-        Interview interview = interviewRepository.findByIdAndNotDeleted(interviewId)
+    /**
+     * 파일 업로드 공통 로직
+     * 
+     * @param interviewId 면접 ID
+     * @param file 업로드된 PDF 파일
+     * @param fileType 파일 유형 (로깅용)
+     * @param updateFunction 인터뷰 엔티티 업데이트 함수 (Interview, String) -> void
+     * @return 업데이트된 면접 응답 DTO
+     */
+    private InterviewResponse uploadFile(
+            Long interviewId,
+            MultipartFile file,
+            String fileType,
+            java.util.function.BiConsumer<Interview, String> updateFunction) {
+        
+        Interview interview = interviewRepository.findByIdAndDeletedFalse(interviewId)
                 .orElseThrow(() -> {
                     log.warn("면접을 찾을 수 없음 - interviewId: {}", interviewId);
                     return new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND);
                 });
 
-        // PDF에서 텍스트 추출
-        String portfolioText = pdfExtractionService.extractText(file);
+        String extractedText = pdfExtractionService.extractText(file);
+        updateFunction.accept(interview, extractedText);
 
-        // 면접 엔티티에 텍스트 저장
-        interview.updatePortfolioText(portfolioText);
-
-        log.info("포트폴리오 업로드 완료 - interviewId: {}, 추출된 텍스트 길이: {} 문자",
-                interviewId, portfolioText.length());
+        log.info("{} 업로드 완료 - interviewId: {}, 추출된 텍스트 길이: {} 문자",
+                fileType, interviewId, extractedText.length());
 
         return InterviewResponse.from(interview);
     }
 }
-

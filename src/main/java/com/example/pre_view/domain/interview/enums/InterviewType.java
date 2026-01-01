@@ -30,4 +30,3 @@ public enum InterviewType {
         return phases.contains(phase);
     }
 }
-

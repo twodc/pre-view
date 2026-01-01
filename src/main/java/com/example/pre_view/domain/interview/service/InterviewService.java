@@ -54,7 +54,7 @@ public class InterviewService {
     public InterviewResponse startInterview(Long interviewId) {
         log.info("면접 시작 처리 시작 - interviewId: {}", interviewId);
 
-        Interview interview = interviewRepository.findByIdAndNotDeleted(interviewId)
+        Interview interview = interviewRepository.findByIdAndDeletedFalse(interviewId)
                 .orElseThrow(() -> {
                     log.warn("면접을 찾을 수 없음 - interviewId: {}", interviewId);
                     return new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND);
@@ -82,7 +82,7 @@ public class InterviewService {
     public InterviewResponse getInterview(Long interviewId) {
         log.debug("면접 조회 시작 - interviewId: {}", interviewId);
 
-        Interview interview = interviewRepository.findByIdAndNotDeleted(interviewId)
+        Interview interview = interviewRepository.findByIdAndDeletedFalse(interviewId)
                 .orElseThrow(() -> {
                     log.warn("면접을 찾을 수 없음 - interviewId: {}", interviewId);
                     return new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND);
@@ -100,7 +100,7 @@ public class InterviewService {
     @Transactional(readOnly = true)
     public Page<InterviewResponse> getInterviews(Pageable pageable) {
         log.debug("면접 목록 조회 시작 - page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
-        Page<InterviewResponse> responsePage = interviewRepository.findAllActive(pageable)
+        Page<InterviewResponse> responsePage = interviewRepository.findAllByDeletedFalseOrderByCreatedAtDesc(pageable)
                 .map(InterviewResponse::from);
         log.info("면접 목록 조회 완료 - 총 {}개 (전체: {}개)", 
                 responsePage.getNumberOfElements(), responsePage.getTotalElements());
@@ -128,7 +128,7 @@ public class InterviewService {
     public InterviewResultResponse getInterviewResult(Long id) {
         log.info("면접 결과 조회 시작 - interviewId: {}", id);
 
-        Interview interview = interviewRepository.findByIdAndNotDeleted(id)
+        Interview interview = interviewRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> {
                     log.warn("면접을 찾을 수 없음 - interviewId: {}", id);
                     return new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND);
@@ -181,7 +181,7 @@ public class InterviewService {
     private void completeInterviewIfNeeded(Long id, Interview interview) {
         try {
             // 최신 상태를 다시 조회하여 낙관적 락 버전 확인
-            Interview latestInterview = interviewRepository.findByIdAndNotDeleted(id)
+            Interview latestInterview = interviewRepository.findByIdAndDeletedFalse(id)
                     .orElseThrow(() -> new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND));
             
             if (latestInterview.getStatus() != InterviewStatus.DONE) {

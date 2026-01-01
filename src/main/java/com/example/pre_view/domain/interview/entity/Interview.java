@@ -70,8 +70,7 @@ public class Interview extends BaseEntity {
     private Integer totalQuestions;
 
     /**
-     * 낙관적 락을 위한 버전 필드
-     * 동시에 면접 상태를 변경하는 것을 방지합니다.
+     * 동시에 면접 상태를 변경하는 것을 방지하기 위한 버전 필드
      */
     @Version
     @Column(name = "version")
@@ -93,16 +92,10 @@ public class Interview extends BaseEntity {
         this.totalQuestions = totalQuestions;
     }
 
-    /**
-     * 이력서 텍스트 업데이트
-     */
     public void updateResumeText(String resumeText) {
         this.resumeText = resumeText;
     }
 
-    /**
-     * 포트폴리오 텍스트 업데이트
-     */
     public void updatePortfolioText(String portfolioText) {
         this.portfolioText = portfolioText;
     }
@@ -122,10 +115,6 @@ public class Interview extends BaseEntity {
 
     public void complete() {
         this.status = InterviewStatus.DONE;
-    }
-
-    public void cancel() {
-        this.status = InterviewStatus.CANCELLED;
     }
 
     public boolean isLastPhase() {

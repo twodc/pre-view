@@ -11,17 +11,22 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AiConfig {
 
-    @Value("${spring.ai.openai.api-key}")
-    private String apiKey;
+    private final String apiKey;
+    private final String baseUrl;
+    private final String model;
+    private final Double temperature;
 
-    @Value("${spring.ai.openai.base-url}")
-    private String baseUrl;
-
-    @Value("${spring.ai.openai.chat.options.model}")
-    private String model;
-
-    @Value("${spring.ai.openai.chat.options.temperature}")
-    private Double temperature;
+    public AiConfig(
+            @Value("${spring.ai.openai.api-key}") String apiKey,
+            @Value("${spring.ai.openai.base-url}") String baseUrl,
+            @Value("${spring.ai.openai.chat.options.model}") String model,
+            @Value("${spring.ai.openai.chat.options.temperature}") Double temperature
+        ) {
+        this.apiKey = apiKey;
+        this.baseUrl = baseUrl;
+        this.model = model;
+        this.temperature = temperature;
+    }
 
     @Bean
     public OpenAiApi openAiApi() {

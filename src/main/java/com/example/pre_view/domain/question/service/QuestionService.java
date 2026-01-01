@@ -90,11 +90,11 @@ public class QuestionService {
      * @param interviewId 면접 ID
      * @return 질문 목록 응답 DTO
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public QuestionListResponse getQuestions(Long interviewId) {
         log.debug("질문 목록 조회 시작 - interviewId: {}", interviewId);
 
-        Interview interview = interviewRepository.findByIdAndNotDeleted(interviewId)
+        Interview interview = interviewRepository.findByIdAndDeletedFalse(interviewId)
                 .orElseThrow(() -> {
                     log.warn("면접을 찾을 수 없음 - interviewId: {}", interviewId);
                     return new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND);
