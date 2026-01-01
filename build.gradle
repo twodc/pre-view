@@ -44,6 +44,10 @@ dependencies {
 	// Spring AI
 	implementation 'org.springframework.ai:spring-ai-openai:2.0.0-M1'
 	implementation 'org.springframework.ai:spring-ai-client-chat:2.0.0-M1'
+	
+	// Resilience4j
+	implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.3.0'
+	runtimeOnly 'org.springframework.boot:spring-boot-starter-aop'
 }
 
 tasks.named('test') {

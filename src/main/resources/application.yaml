@@ -51,3 +51,29 @@ logging:
     org.hibernate: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+resilience4j
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2.0
+        enableRandomizedWait: true
+        randomizedWaitFactor: 0.5
+        retryExceptions:
+          - java.lang.Exception
+    instances:
+      aiServiceRetry:
+        baseConfig: default
+  circuitbreaker:
+    instances:
+      groqApi:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED # 횟수 기반 (직관적임)
+        slidingWindowSize: 10          # 최근 10번 요청을 기준으로
+        minimumNumberOfCalls: 5        # 최소 5번은 요청이 와야 계산
+        failureRateThreshold: 50       # 50% 이상 실패하면 (5번 중 3번 실패 시)
+        waitDurationInOpenState: 10s   # 10초 동안 차단 (Open)
+        permittedNumberOfCallsInHalfOpenState: 3 # 10초 뒤 3번만 찔러보기
