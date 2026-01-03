@@ -6,11 +6,10 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum InterviewPhase {
-    GREETING("인사", 1, 1, false, true),  // 템플릿 질문
-    SELF_INTRO("자기소개", 2, 2, true, true),  // 템플릿 질문
-    PERSONALITY("인성/태도", 3, 4, true, false),  // AI 생성 질문 (이력서 기반)
-    TECHNICAL("기술", 4, 5, true, false),  // AI 생성 질문 (이력서/포트폴리오/기술스택 기반)
-    CLOSING("마무리", 5, 2, false, true);  // 템플릿 질문
+    OPENING("인사/자기소개", 1, 3, false, true),  // 템플릿 질문
+    TECHNICAL("기술", 2, 5, true, false),  // AI 생성 질문 (이력서/포트폴리오/기술스택 기반)
+    PERSONALITY("인성/태도", 3, 4, true, false),  // AI 생성 질문 (이력서/기술스택 기반)
+    CLOSING("마무리", 4, 2, false, true);  // 템플릿 질문
 
     private final String description;
     private final int order;

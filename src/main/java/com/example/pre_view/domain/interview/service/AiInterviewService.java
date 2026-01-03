@@ -153,8 +153,7 @@ public class AiInterviewService {
     // 평가 기준 반환
     private String getEvaluationCriteria(InterviewPhase phase) {
         return switch (phase) {
-            case GREETING -> "자연스러움, 예의, 긍정적인 태도";
-            case SELF_INTRO -> "명확성, 관련 경험 언급, 지원 동기의 진정성, 논리적 구성";
+            case OPENING -> "자연스러움, 예의, 긍정적인 태도, 명확성, 관련 경험 언급, 지원 동기의 진정성, 논리적 구성";
             case PERSONALITY -> "구체적인 사례(STAR 기법), 자기 인식, 협업 능력, 문제 해결 접근법, 성장 의지";
             case TECHNICAL -> "기술적 정확성, 깊이 있는 이해, 실무 적용 가능성, 문제 해결 능력";
             case CLOSING -> "적극성, 회사/직무에 대한 관심, 준비성";
@@ -166,14 +165,9 @@ public class AiInterviewService {
      */
     private String getPhaseSpecificInstruction(InterviewPhase phase) {
         return switch (phase) {
-            case GREETING -> """
-                    IMPORTANT: This is the GREETING phase.
-                    Focus ONLY on the candidate's greeting, manners, attitude, and first impression.
-                    Do NOT ask technical questions or dig into specific experiences.
-                    """;
-            case SELF_INTRO -> """
-                    IMPORTANT: This is the SELF-INTRODUCTION phase.
-                    Focus ONLY on the candidate's background, motivation, and career goals.
+            case OPENING -> """
+                    IMPORTANT: This is the OPENING phase (greeting and self-introduction).
+                    Focus on the candidate's greeting, manners, attitude, first impression, background, motivation, and career goals.
                     Do NOT ask technical questions or dig into technical details.
                     Technical questions will be asked in the TECHNICAL phase.
                     """;
@@ -202,19 +196,14 @@ public class AiInterviewService {
      */
     private String getFeedbackGuideline(InterviewPhase phase) {
         return switch (phase) {
-            case GREETING -> """
+            case OPENING -> """
                     Feedback Writing Guidelines (write feedback in Korean):
                     - Evaluate whether the greeting was natural and polite
                     - Mention whether there was a positive attitude and confident start
-                    - Provide specific evaluation of first impression
-                    - Suggest how to start more confidently if needed
-                    """;
-            case SELF_INTRO -> """
-                    Feedback Writing Guidelines (write feedback in Korean):
                     - Evaluate whether the self-introduction was clear and logically structured
-                    - Check if relevant experiences were mentioned specifically
-                    - Evaluate whether the motivation was expressed sincerely
-                    - Present areas for improvement and specific improvement suggestions
+                    - Check if relevant experiences and motivation were mentioned specifically
+                    - Provide specific evaluation of first impression
+                    - Suggest improvements for greeting, self-introduction, and overall presentation
                     """;
             case PERSONALITY -> """
                     Feedback Writing Guidelines (write feedback in Korean):
@@ -245,13 +234,9 @@ public class AiInterviewService {
      */
     private String getFeedbackExample(InterviewPhase phase) {
         return switch (phase) {
-            case GREETING ->
+            case OPENING ->
                 """
-                        "인사말이 자연스럽고 예의 바른 태도가 좋았습니다. 긍정적인 첫인상을 주었으며, 대화의 시작이 매끄럽게 이루어졌습니다. 다만, 조금 더 자신감 있는 어조로 시작한다면 면접관에게 더 강한 인상을 줄 수 있을 것입니다. 목소리의 크기와 속도도 적절했습니다. 앞으로는 면접 초반에 자신의 강점을 간단히 언급하는 것도 좋은 방법입니다."
-                        """;
-            case SELF_INTRO ->
-                """
-                        "자기소개가 명확하고 논리적으로 구성되어 있어 이해하기 쉬웠습니다. 특히 관련 경험을 구체적으로 언급하여 지원 동기의 진정성을 잘 보여주었습니다. 다만, 지원 동기를 설명할 때 더 구체적인 사례나 데이터를 활용한다면 설득력이 더욱 높아질 것입니다. 또한 자신의 강점을 단순 나열이 아닌 스토리텔링 방식으로 전달하면 더욱 효과적일 것입니다."
+                        "인사말이 자연스럽고 예의 바른 태도가 좋았으며, 자기소개가 명확하고 논리적으로 구성되어 있어 이해하기 쉬웠습니다. 긍정적인 첫인상을 주었고, 특히 관련 경험을 구체적으로 언급하여 지원 동기의 진정성을 잘 보여주었습니다. 다만, 조금 더 자신감 있는 어조로 시작하고, 지원 동기를 설명할 때 더 구체적인 사례나 데이터를 활용한다면 설득력이 더욱 높아질 것입니다. 또한 자신의 강점을 단순 나열이 아닌 스토리텔링 방식으로 전달하면 더욱 효과적일 것입니다."
                         """;
             case PERSONALITY ->
                 """

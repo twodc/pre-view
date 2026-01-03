@@ -20,7 +20,7 @@ public enum ErrorCode {
 
     // Question
     QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "질문을 찾을 수 없습니다."),
-    INVALID_QUESTION_PHASE(HttpStatus.BAD_REQUEST, "Q002", "템플릿 질문이 없는 단계입니다. 템플릿 질문은 GREETING, SELF_INTRO, CLOSING만 지원합니다."),
+    INVALID_QUESTION_PHASE(HttpStatus.BAD_REQUEST, "Q002", "템플릿 질문이 없는 단계입니다. 템플릿 질문은 OPENING, CLOSING만 지원합니다."),
 
     // Answer
     ANSWER_NOT_FOUND(HttpStatus.NOT_FOUND, "A001", "답변을 찾을 수 없습니다."),

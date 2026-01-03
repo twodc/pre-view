@@ -9,10 +9,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum InterviewType {
     FULL("전체 면접", List.of(
-        InterviewPhase.GREETING,
-        InterviewPhase.SELF_INTRO,
-        InterviewPhase.PERSONALITY,
+        InterviewPhase.OPENING,
         InterviewPhase.TECHNICAL,
+        InterviewPhase.PERSONALITY,
         InterviewPhase.CLOSING
     )),
     TECHNICAL("기술 면접", List.of(
