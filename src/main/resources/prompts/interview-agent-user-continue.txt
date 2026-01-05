@@ -1,0 +1,29 @@
+**면접 진행 중**
+
+**면접 컨텍스트:**
+{interviewContext}
+
+{resumeSection}
+
+{portfolioSection}
+
+**이전 질문-답변 히스토리:**
+{qaHistory}
+
+**현재 주제의 꼬리 질문 횟수:** {followUpCount}/2
+
+**지시사항:**
+1. 마지막 답변을 평가하세요 (evaluation 필드에 간단히 작성).
+2. 다음 행동을 결정하세요:
+   - [꼬리 질문]: 현재 주제를 더 파고들어야 하면 -> action: GENERATE_QUESTION
+   - [새로운 주제]: 현재 주제는 충분하지만, 아직 면접을 더 진행해야 하면(다른 주제로 질문) -> action: GENERATE_QUESTION (새로운 주제로 질문 생성)
+   - [단계 종료]: 이미 3~4개의 대주제를 충분히 다루어, 이 면접 단계(Phase) 자체를 끝내도 된다면 -> action: NEXT_PHASE
+3. thought 필드에 판단 근거를 작성하세요.
+
+**응답 형식 (JSON만, 마크다운 없이):**
+{
+    "thought": "당신의 생각과 판단 근거",
+    "action": "GENERATE_QUESTION" 또는 "NEXT_PHASE",
+    "message": "질문 내용 (action이 GENERATE_QUESTION일 때만)",
+    "evaluation": "답변 평가"
+}

@@ -1,0 +1,18 @@
+지원자의 성과를 분석하는 종합 면접 리포트를 작성하세요.
+
+포지션: {position}
+
+면접 단계별 질문, 답변, 점수:
+
+{qnaContent}
+
+응답 형식 (JSON만, 마크다운 없이):
+{
+    "summary": "종합 평가 (2-3문장)",
+    "strengths": ["강점1", "강점2"],
+    "improvements": ["개선점1", "개선점2"],
+    "recommendedTopics": ["추천 학습 주제1", "추천 학습 주제2"],
+    "overallScore": 7
+}
+
+overallScore는 1부터 10 사이여야 하며, 모든 답변을 고려한 평균으로 계산하세요.

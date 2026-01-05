@@ -147,4 +147,25 @@ public class Interview extends BaseEntity {
         List<InterviewPhase> phases = this.type.getPhases();
         return this.currentPhase == phases.get(phases.size() - 1);
     }
+
+    /**
+     * 면접 컨텍스트 문자열을 생성합니다.
+     * AI 프롬프트에 전달할 포지션, 레벨, 기술 스택 정보를 조합합니다.
+     *
+     * @return 면접 컨텍스트 문자열 (예: "백엔드 개발자 주니어 (Java, Spring)")
+     */
+    public String buildContext() {
+        StringBuilder context = new StringBuilder();
+        context.append(this.position.getDescription())
+                .append(" ")
+                .append(this.level.getDescription());
+
+        if (this.techStacks != null && !this.techStacks.isEmpty()) {
+            context.append(" (")
+                    .append(String.join(", ", this.techStacks))
+                    .append(")");
+        }
+
+        return context.toString();
+    }
 }

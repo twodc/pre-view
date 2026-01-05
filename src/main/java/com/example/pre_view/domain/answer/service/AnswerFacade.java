@@ -12,6 +12,7 @@ import com.example.pre_view.domain.answer.dto.AnswerCreateRequest;
 import com.example.pre_view.domain.answer.dto.AnswerResponse;
 import com.example.pre_view.domain.interview.dto.AiInterviewAgentResponse;
 import com.example.pre_view.domain.interview.entity.Interview;
+import com.example.pre_view.domain.interview.enums.InterviewAction;
 import com.example.pre_view.domain.interview.enums.InterviewPhase;
 import com.example.pre_view.domain.interview.service.AiInterviewService;
 import com.example.pre_view.domain.question.entity.Question;
@@ -101,13 +102,24 @@ public class AnswerFacade {
         AiInterviewAgentResponse agentResponse = aiInterviewService.processInterviewStep(
                 phase,
                 null,  // bridgeAnswer는 첫 질문에만 사용
-                buildInterviewContext(interview),
+                interview.buildContext(),  // Interview 엔티티의 도메인 메서드 활용
                 interview.getResumeText(),
                 interview.getPortfolioText(),
                 previousQuestions,
                 previousAnswers,
                 followUpDepth
         );
+
+        // Agent 응답이 null인 경우 (AI 호출 실패 시) 기본 응답 생성
+        if (agentResponse == null) {
+            log.warn("Agent 응답이 null - AI 호출 실패, NEXT_PHASE로 처리 - phase: {}", phase);
+            agentResponse = new AiInterviewAgentResponse(
+                    "AI 서비스 연결 문제로 판단을 수행할 수 없었습니다.",
+                    InterviewAction.NEXT_PHASE,
+                    null,
+                    null
+            );
+        }
 
         log.info("Agent 호출 완료 - action: {}, hasMessage: {}",
                 agentResponse.action(), agentResponse.message() != null);
@@ -119,23 +131,5 @@ public class AnswerFacade {
                 aiFeedback,
                 agentResponse
         );
-    }
-
-    /**
-     * 면접 컨텍스트 문자열 생성
-     * 포지션, 레벨, 기술 스택 정보를 조합합니다.
-     */
-    private String buildInterviewContext(Interview interview) {
-        StringBuilder context = new StringBuilder();
-        context.append(interview.getPosition().getDescription())
-                .append(" ")
-                .append(interview.getLevel().getDescription());
-
-        if (interview.getTechStacks() != null && !interview.getTechStacks().isEmpty()) {
-            context.append(" (")
-                    .append(String.join(", ", interview.getTechStacks()))
-                    .append(")");
-        }
-        return context.toString();
     }
 }

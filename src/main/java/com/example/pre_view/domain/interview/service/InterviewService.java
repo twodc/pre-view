@@ -18,6 +18,7 @@ import com.example.pre_view.domain.interview.dto.InterviewCreateRequest;
 import com.example.pre_view.domain.interview.dto.InterviewResponse;
 import com.example.pre_view.domain.interview.dto.InterviewResultResponse;
 import com.example.pre_view.domain.interview.entity.Interview;
+import com.example.pre_view.domain.interview.enums.InterviewPhase;
 import com.example.pre_view.domain.interview.enums.InterviewStatus;
 import com.example.pre_view.domain.interview.repository.InterviewRepository;
 import com.example.pre_view.domain.question.dto.QuestionListResponse;
@@ -67,6 +68,13 @@ public class InterviewService {
 
         List<Question> templateQuestions = questionService.createTemplateQuestions(interview);
         interview.start();
+
+        // 첫 단계가 AI 생성 단계(TECHNICAL, PERSONALITY)면 첫 질문 생성
+        InterviewPhase firstPhase = interview.getCurrentPhase();
+        if (firstPhase != null && !firstPhase.isTemplate()) {
+            log.info("AI 생성 단계로 시작 - interviewId: {}, phase: {}", interviewId, firstPhase);
+            questionService.generateFirstQuestionByAgent(interview, null, firstPhase);
+        }
 
         log.info("면접 시작 처리 완료 - interviewId: {}, 템플릿 질문 수: {} (AI 질문은 실시간 생성)",
                 interviewId, templateQuestions.size());
@@ -142,9 +150,8 @@ public class InterviewService {
                 id, questions.size(), answers.size());
 
         // AI 리포트 생성은 트랜잭션 밖에서 수행 (외부 API 호출)
-        String reportContext = buildContext(interview);
         log.debug("AI 리포트 생성 시작 - interviewId: {}", id);
-        AiReportResponse report = aiInterviewService.generateReport(reportContext, answers);
+        AiReportResponse report = aiInterviewService.generateReport(interview.buildContext(), answers);
         log.info("AI 리포트 생성 완료 - interviewId: {}", id);
 
         InterviewResultResponse response = InterviewResultResponse.of(interview, questions, answers, report);
@@ -156,24 +163,6 @@ public class InterviewService {
 
         log.info("면접 결과 조회 완료 - interviewId: {}", id);
         return response;
-    }
-
-    /**
-     * 면접 컨텍스트 문자열 생성 (AI 리포트 생성용)
-     */
-    private String buildContext(Interview interview) {
-        StringBuilder context = new StringBuilder();
-        context.append(interview.getPosition().getDescription())
-                .append(" ")
-                .append(interview.getLevel().getDescription());
-
-        if (interview.getTechStacks() != null && !interview.getTechStacks().isEmpty()) {
-            context.append(" (")
-                    .append(String.join(", ", interview.getTechStacks()))
-                    .append(")");
-        }
-
-        return context.toString();
     }
 
     public InterviewResponse uploadResume(Long interviewId, MultipartFile file) {
