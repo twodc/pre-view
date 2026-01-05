@@ -19,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.pre_view.common.dto.ApiResponse;
 import com.example.pre_view.domain.answer.dto.AnswerCreateRequest;
 import com.example.pre_view.domain.answer.dto.AnswerResponse;
-import com.example.pre_view.domain.answer.service.AnswerService;
+import com.example.pre_view.domain.answer.service.AnswerFacade;
 import com.example.pre_view.domain.interview.dto.InterviewCreateRequest;
 import com.example.pre_view.domain.interview.dto.InterviewResponse;
 import com.example.pre_view.domain.interview.dto.InterviewResultResponse;
@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public class InterviewController {
 
     private final InterviewService interviewService;
-    private final AnswerService answerService;
+    private final AnswerFacade answerFacade;
 
     @PostMapping
     @Operation(summary = "면접 생성", description = "새로운 면접을 생성합니다. (질문은 /start 호출 시 생성)")
@@ -111,8 +111,8 @@ public class InterviewController {
         @Valid @RequestBody AnswerCreateRequest request
     ) {
         log.info("답변 제출 API 호출 - interviewId: {}, questionId: {}", id, questionId);
-        AnswerResponse response = answerService.createAnswer(questionId, request);
-        log.info("답변 제출 완료 - interviewId: {}, questionId: {}, score: {}", 
+        AnswerResponse response = answerFacade.createAnswer(id, questionId, request);
+        log.info("답변 제출 완료 - interviewId: {}, questionId: {}, score: {}",
                 id, questionId, response.score());
         return ResponseEntity.ok(ApiResponse.ok("답변이 제출되었습니다.", response));
     }

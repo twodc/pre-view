@@ -3,15 +3,15 @@ package com.example.pre_view.domain.interview.enums;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * AI 면접 에이전트의 행동 타입
+ */
 @Getter
 @RequiredArgsConstructor
-public enum ExperienceLevel {
-    NEWCOMER("신입", 0),
-    JUNIOR("주니어", 1),
-    MID("미들", 2),
-    SENIOR("시니어", 3);
+public enum InterviewAction {
+    GENERATE_QUESTION("질문 생성"),
+    NEXT_PHASE("다음 단계로 이동");
 
     private final String description;
-    private final int level;
 }
 

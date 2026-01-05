@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,6 +39,7 @@ public class InterviewService {
     private final AnswerRepository answerRepository;
     private final QuestionService questionService;
     private final FileUploadService fileUploadService;
+    private final InterviewStatusService interviewStatusService;
 
     @Transactional
     public InterviewResponse createInterview(InterviewCreateRequest requestDto) {
@@ -149,8 +149,10 @@ public class InterviewService {
 
         InterviewResultResponse response = InterviewResultResponse.of(interview, questions, answers, report);
 
-        // 결과 조회 시 면접 완료 처리 (별도 트랜잭션으로 수행)
-        completeInterviewIfNeeded(id, interview);
+        // 결과 조회 시 면접 완료 처리 (별도 서비스의 새 트랜잭션으로 수행)
+        // 주의: Spring AOP 프록시는 private 메서드에 적용되지 않으므로,
+        // REQUIRES_NEW 전파가 필요한 로직은 별도 서비스로 분리하였습니다.
+        interviewStatusService.completeInterviewIfNeeded(id);
 
         log.info("면접 결과 조회 완료 - interviewId: {}", id);
         return response;
@@ -172,26 +174,6 @@ public class InterviewService {
         }
 
         return context.toString();
-    }
-
-    /**
-     * 면접 완료 처리 (별도 트랜잭션)
-     */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    private void completeInterviewIfNeeded(Long id, Interview interview) {
-        try {
-            // 최신 상태를 다시 조회하여 낙관적 락 버전 확인
-            Interview latestInterview = interviewRepository.findByIdAndDeletedFalse(id)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND));
-            
-            if (latestInterview.getStatus() != InterviewStatus.DONE) {
-                latestInterview.complete();
-                log.info("면접 완료 처리 - interviewId: {}", id);
-            }
-        } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
-            log.warn("면접 완료 처리 중 동시성 충돌 발생 - interviewId: {}", id);
-            throw e;
-        }
     }
 
     public InterviewResponse uploadResume(Long interviewId, MultipartFile file) {

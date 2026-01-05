@@ -38,6 +38,14 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(ErrorCode.CONCURRENT_MODIFICATION));
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
+        log.warn("잘못된 상태 요청: {}", e.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.INVALID_INTERVIEW_STATUS.getStatus())
+                .body(ErrorResponse.of(ErrorCode.INVALID_INTERVIEW_STATUS, e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("Exception 발생: {}", e.getMessage(), e);

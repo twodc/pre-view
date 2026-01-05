@@ -105,9 +105,24 @@ public class Interview extends BaseEntity {
         this.currentPhase = this.type.getPhases().get(0);
     }
 
+    /**
+     * 다음 면접 단계로 전환합니다.
+     *
+     * @throws IllegalStateException 현재 단계가 null인 경우 (면접이 시작되지 않은 상태)
+     */
     public void nextPhase() {
+        if (this.currentPhase == null) {
+            throw new IllegalStateException("면접이 시작되지 않았습니다. start()를 먼저 호출하세요.");
+        }
+
         List<InterviewPhase> phases = this.type.getPhases();
         int currentIndex = phases.indexOf(this.currentPhase);
+
+        // currentPhase가 phases 목록에 없는 경우 방어 (-1 반환 시)
+        if (currentIndex < 0) {
+            throw new IllegalStateException("현재 단계가 유효하지 않습니다: " + this.currentPhase);
+        }
+
         if (currentIndex < phases.size() - 1) {
             this.currentPhase = phases.get(currentIndex + 1);
         }
@@ -117,7 +132,18 @@ public class Interview extends BaseEntity {
         this.status = InterviewStatus.DONE;
     }
 
+    /**
+     * 현재 단계가 마지막 단계인지 확인합니다.
+     *
+     * @return 마지막 단계이면 true, 아니면 false
+     *         면접이 시작되지 않은 경우(currentPhase가 null)에는 false 반환
+     */
     public boolean isLastPhase() {
+        // null 체크: 면접이 시작되지 않은 경우 마지막 단계가 아님
+        if (this.currentPhase == null) {
+            return false;
+        }
+
         List<InterviewPhase> phases = this.type.getPhases();
         return this.currentPhase == phases.get(phases.size() - 1);
     }

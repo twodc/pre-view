@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.example.pre_view.domain.interview.enums.InterviewPhase;
 import com.example.pre_view.domain.question.entity.Question;
 
 public interface QuestionRepository extends JpaRepository<Question, Long> {
@@ -25,4 +26,13 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     // size()만 필요한 경우
     @Query("SELECT COUNT(q) FROM Question q WHERE q.interview.id = :interviewId")
     int countByInterviewId(@Param("interviewId") Long interviewId);
+
+    // 특정 단계의 질문 목록 조회
+    @Query("SELECT q FROM Question q " +
+           "LEFT JOIN FETCH q.parentQuestion " +
+           "WHERE q.interview.id = :interviewId AND q.phase = :phase " +
+           "ORDER BY q.sequence ASC")
+    List<Question> findByInterviewIdAndPhaseOrderBySequence(
+            @Param("interviewId") Long interviewId,
+            @Param("phase") InterviewPhase phase);
 }

@@ -6,16 +6,17 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum InterviewPhase {
-    OPENING("인사/자기소개", 1, 3, false, true),  // 템플릿 질문
-    TECHNICAL("기술", 2, 5, true, false),  // AI 생성 질문 (이력서/포트폴리오/기술스택 기반)
-    PERSONALITY("인성/태도", 3, 4, true, false),  // AI 생성 질문 (이력서/기술스택 기반)
-    CLOSING("마무리", 4, 2, false, true);  // 템플릿 질문
+    OPENING("인사/자기소개", 1, 3, false, true, 0),      // 템플릿, 꼬리질문 없음
+    TECHNICAL("기술", 2, 5, true, false, 3),             // 최대 3회
+    PERSONALITY("인성/태도", 3, 4, true, false, 2),      // 최대 2회
+    CLOSING("마무리", 4, 2, false, true, 0);             // 템플릿, 꼬리질문 없음
 
     private final String description;
     private final int order;
     private final int defaultQuestionCount;
     private final boolean allowFollowUp;
     private final boolean isTemplateQuestion;  // 템플릿 질문 여부 (true: 고정 질문, false: AI 실시간 생성)
+    private final int maxFollowUpCount;  // 꼬리 질문 최대 횟수 (Agent가 참고)
 
     /**
      * 이 단계가 고정 템플릿 질문인지 확인

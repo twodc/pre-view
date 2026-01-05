@@ -10,8 +10,9 @@ import org.springframework.stereotype.Service;
 
 import com.example.pre_view.domain.answer.dto.AiFeedbackResponse;
 import com.example.pre_view.domain.answer.entity.Answer;
+import com.example.pre_view.domain.interview.dto.AiInterviewAgentResponse;
 import com.example.pre_view.domain.interview.dto.AiReportResponse;
-import com.example.pre_view.domain.interview.dto.AiSingleQuestionResponse;
+import com.example.pre_view.domain.interview.enums.InterviewAction;
 import com.example.pre_view.domain.interview.enums.InterviewPhase;
 
 import io.github.resilience4j.retry.annotation.Retry;
@@ -23,22 +24,19 @@ import lombok.extern.slf4j.Slf4j;
 public class AiInterviewService {
 
     private final ChatClient chatClient;
+    private final ChatClient.Builder chatClientBuilder;
 
     private static final String SYSTEM_PROMPT = """
-            You are a professional interviewer conducting job interviews.
+            당신은 전문 면접관입니다.
 
-            CRITICAL OUTPUT LANGUAGE RULE:
-            - ALL text outputs (feedback, questions, responses) MUST be written EXCLUSIVELY in Korean (한국어).
-            - NEVER use English, Chinese, Japanese, or any other languages in output text.
-            - Even though these instructions are in English, your output must be 100% Korean.
-
-            Response format:
-            - Provide responses in JSON format only, without markdown formatting.
-            - Be specific and constructive in your feedback.
-            - Provide detailed feedback (5-7 sentences) covering strengths, weaknesses, and improvement suggestions.
+            응답 형식:
+            - JSON 형식으로만 응답하세요 (마크다운 코드 블록 없이).
+            - 구체적이고 건설적인 피드백을 제공하세요.
+            - 강점, 약점, 개선 제안을 포함한 상세한 피드백을 5-7문장으로 작성하세요.
             """;
 
     public AiInterviewService(ChatClient.Builder builder) {
+        this.chatClientBuilder = builder;
         this.chatClient = builder
                 .defaultSystem(SYSTEM_PROMPT)
                 .build();
@@ -56,25 +54,25 @@ public class AiInterviewService {
 
         String followUpInstruction = allowFollowUp
                 ? """
-                        Follow-up Question Generation Rules (CRITICAL):
-                        - Only generate a follow-up question if the answer is reasonably good (score >= 5) but needs slight clarification or additional details.
-                        - DO NOT generate follow-up questions if:
-                          * The score is 4 or below (the candidate clearly struggled with the question - just give low score and move on)
-                          * The answer is completely wrong or shows fundamental misunderstanding
-                          * The answer is too vague or too short to evaluate properly
-                        - Follow-up questions should ask for ADDITIONAL details or examples, NOT repeat the same question in different words.
-                        - Each main question should have AT MOST ONE follow-up question.
-                        - The follow-up question must be DIFFERENT from the original question (avoid similar phrasing).
+                    후속 질문 생성 규칙:
+                    - 답변이 적절히 좋은 경우(점수 >= 5)이지만 약간의 설명이나 추가 세부사항이 필요한 경우에만 후속 질문을 생성하세요.
+                    - 다음 경우에는 후속 질문을 생성하지 마세요:
+                      * 점수가 4 이하인 경우 (지원자가 질문에 어려움을 겪은 경우 - 낮은 점수를 주고 넘어가세요)
+                      * 답변이 완전히 틀렸거나 근본적인 오해를 보여주는 경우
+                      * 답변이 너무 모호하거나 짧아서 평가하기 어려운 경우
+                    - 후속 질문은 추가 세부사항이나 예시를 요청해야 하며, 같은 질문을 다른 말로 반복하지 마세요.
+                    - 각 주 질문은 최대 하나의 후속 질문만 가질 수 있습니다.
+                    - 후속 질문은 원래 질문과 다르게 작성해야 합니다 (유사한 표현을 피하세요).
 
-                        If the above conditions are met, set needsFollowUp to true and provide a follow-up question in Korean ONLY.
-                        Otherwise, set needsFollowUp to false and followUpQuestion to null.
+                    위 조건이 충족되면 needsFollowUp을 true로 설정하고 후속 질문을 제공하세요.
+                    그렇지 않으면 needsFollowUp을 false로 설정하고 followUpQuestion을 null로 설정하세요.
 
-                        Examples of good follow-up questions (MUST be in Korean):
-                        - "해당 경험에서 가장 어려웠던 부분은 무엇이었나요?"
-                        - "이 기술을 실제 프로젝트에 어떻게 적용하셨는지 구체적인 예시를 들어주실 수 있나요?"
-                        - "이런 상황에서 발생할 수 있는 문제점이나 트레이드오프는 무엇이라고 생각하시나요?"
-                        """
-                : "Set needsFollowUp to false and followUpQuestion to null.";
+                    좋은 후속 질문 예시:
+                    - "해당 경험에서 가장 어려웠던 부분은 무엇이었나요?"
+                    - "이 기술을 실제 프로젝트에 어떻게 적용하셨는지 구체적인 예시를 들어주실 수 있나요?"
+                    - "이런 상황에서 발생할 수 있는 문제점이나 트레이드오프는 무엇이라고 생각하시나요?"
+                    """
+                : "needsFollowUp을 false로 설정하고 followUpQuestion을 null로 설정하세요.";
 
         // 파라미터가 많을 경우 Map으로 그룹화하여 .params() 사용
         Map<String, Object> params = new HashMap<>();
@@ -92,43 +90,37 @@ public class AiInterviewService {
         return chatClient.prompt()
                 .user(u -> u
                         .text("""
-                                Evaluate the candidate's answer based on the interview phase.
+                            면접 단계에 따라 지원자의 답변을 평가하세요.
 
-                                Interview Phase: {phase}
-                                Question: {question}
-                                Answer: {answer}
+                            면접 단계: {phase}
+                            질문: {question}
+                            답변: {answer}
 
-                                Evaluation Criteria: {criteria}
+                            평가 기준: {criteria}
 
-                                {phaseInstruction}
+                            {phaseInstruction}
 
-                                {feedbackGuideline}
+                            {feedbackGuideline}
 
-                                {followUpInstruction}
+                            {followUpInstruction}
 
-                                OUTPUT LANGUAGE REQUIREMENT (CRITICAL):
-                                - ALL text in your response MUST be written EXCLUSIVELY in Korean (한국어).
-                                - Do NOT use English, Chinese, Japanese, or any other languages.
-                                - The feedback field and followUpQuestion field (if any) must be 100% Korean.
+                            피드백 구조 요구사항:
+                            - 각 평가 기준을 구체적으로 다루세요
+                            - 다음을 포함하세요: (1) 강점 (좋았던 점), (2) 개선 영역 (부족했던 점), (3) 구체적인 개선 제안
 
-                                Feedback Structure Requirements:
-                                - Write 5-7 detailed sentences in Korean
-                                - Cover each evaluation criterion specifically
-                                - Include: (1) Strengths (what was good), (2) Areas for improvement (what was lacking), (3) Specific improvement suggestions
+                            피드백 예시:
+                            {feedbackExample}
 
-                                Example Feedback Format (Korean only):
-                                {feedbackExample}
+                            응답 형식 (JSON만, 마크다운 없이):
+                            {{
+                                "feedback": "구체적이고 상세한 피드백 (5-7문장)",
+                                "score": 7,
+                                "needsFollowUp": false,
+                                "followUpQuestion": null
+                            }}
 
-                                Response Format (JSON only, no markdown):
-                                {{
-                                    "feedback": "한국어로 작성된 구체적이고 상세한 피드백 (5-7문장)",
-                                    "score": 7,
-                                    "needsFollowUp": false,
-                                    "followUpQuestion": null
-                                }}
-
-                                Score should be between 1 and 10.
-                                """)
+                            점수는 1부터 10 사이여야 합니다.
+                            """)
                         .params(params)
                         .param("feedbackGuideline", feedbackGuideline)
                         .param("feedbackExample", feedbackExample))
@@ -144,7 +136,7 @@ public class AiInterviewService {
         log.error("AI 피드백 생성 실패 (모든 재시도 실패) - phase: {}, 기본 피드백 반환", phase, e);
         return new AiFeedbackResponse(
                 "AI 서비스 연결 문제로 자동 피드백을 생성할 수 없었습니다. " +
-                "답변은 저장되었으며, 잠시 후 다시 시도해주세요.",
+                        "답변은 저장되었으며, 잠시 후 다시 시도해주세요.",
                 5,
                 false,
                 null);
@@ -161,70 +153,71 @@ public class AiInterviewService {
     }
 
     /**
-     * 단계별 구체적인 지시사항 (영어로 작성하여 명확성 확보)
+     * 단계별 구체적인 지시사항
      */
     private String getPhaseSpecificInstruction(InterviewPhase phase) {
         return switch (phase) {
-            case OPENING -> """
-                    IMPORTANT: This is the OPENING phase (greeting and self-introduction).
-                    Focus on the candidate's greeting, manners, attitude, first impression, background, motivation, and career goals.
-                    Do NOT ask technical questions or dig into technical details.
-                    Technical questions will be asked in the TECHNICAL phase.
+            case OPENING ->
+                """
+                    중요: 이것은 OPENING 단계(인사 및 자기소개)입니다.
+                    지원자의 인사, 예의, 태도, 첫인상, 배경, 동기, 경력 목표에 집중하세요.
+                    기술 질문을 하거나 기술적 세부사항을 파고들지 마세요.
+                    기술 질문은 TECHNICAL 단계에서 질문할 것입니다.
                     """;
             case PERSONALITY ->
                 """
-                        IMPORTANT: This is the PERSONALITY/BEHAVIORAL phase.
-                        Focus on the candidate's collaboration skills, conflict resolution, leadership, and other personality aspects.
-                        Evaluate whether they use the STAR method (Situation, Task, Action, Result) with specific examples.
-                        """;
+                    중요: 이것은 PERSONALITY/BEHAVIORAL 단계입니다.
+                    지원자의 협업 능력, 갈등 해결, 리더십 및 기타 인성 측면에 집중하세요.
+                    STAR 기법(Situation, Task, Action, Result)을 구체적인 예시와 함께 사용하는지 평가하세요.
+                    """;
             case TECHNICAL ->
                 """
-                        IMPORTANT: This is the TECHNICAL phase.
-                        Evaluate the candidate's technical knowledge, understanding, and practical application abilities.
-                        Focus on technical accuracy and deep understanding.
-                        """;
+                    중요: 이것은 TECHNICAL 단계입니다.
+                    지원자의 기술 지식, 이해력, 실무 적용 능력을 평가하세요.
+                    기술적 정확성과 깊이 있는 이해에 집중하세요.
+                    """;
             case CLOSING ->
                 """
-                        IMPORTANT: This is the CLOSING phase.
-                        Focus on the candidate's proactiveness, interest in the company/position, and preparedness.
-                        """;
+                    중요: 이것은 CLOSING 단계입니다.
+                    지원자의 적극성, 회사/직무에 대한 관심, 준비성에 집중하세요.
+                    """;
         };
     }
 
     /**
-     * 단계별 피드백 가이드라인 (영어로 작성하여 명확성 확보)
+     * 단계별 피드백 가이드라인
      */
     private String getFeedbackGuideline(InterviewPhase phase) {
         return switch (phase) {
             case OPENING -> """
-                    Feedback Writing Guidelines (write feedback in Korean):
-                    - Evaluate whether the greeting was natural and polite
-                    - Mention whether there was a positive attitude and confident start
-                    - Evaluate whether the self-introduction was clear and logically structured
-                    - Check if relevant experiences and motivation were mentioned specifically
-                    - Provide specific evaluation of first impression
-                    - Suggest improvements for greeting, self-introduction, and overall presentation
+                    피드백 작성 가이드라인:
+                    - 인사가 자연스럽고 예의 바른지 평가하세요
+                    - 긍정적인 태도와 자신감 있는 시작이 있었는지 언급하세요
+                    - 자기소개가 명확하고 논리적으로 구성되었는지 평가하세요
+                    - 관련 경험과 동기가 구체적으로 언급되었는지 확인하세요
+                    - 첫인상에 대한 구체적인 평가를 제공하세요
+                    - 인사, 자기소개, 전체적인 프레젠테이션에 대한 개선 제안을 하세요
                     """;
             case PERSONALITY -> """
-                    Feedback Writing Guidelines (write feedback in Korean):
-                    - Evaluate whether specific examples using STAR method were provided
-                    - Assess self-awareness and growth mindset
-                    - Evaluate collaboration skills and problem-solving approach
-                    - Provide specific advice on areas needing improvement
+                    피드백 작성 가이드라인:
+                    - STAR 기법을 사용한 구체적인 예시가 제공되었는지 평가하세요
+                    - 자기 인식과 성장 마인드셋을 평가하세요
+                    - 협업 능력과 문제 해결 접근법을 평가하세요
+                    - 개선이 필요한 영역에 대한 구체적인 조언을 제공하세요
                     """;
             case TECHNICAL -> """
-                    Feedback Writing Guidelines (write feedback in Korean):
-                    - Evaluate technical accuracy and depth of understanding
-                    - Assess practical application potential
-                    - Evaluate problem-solving ability and approach
-                    - Suggest specific learning directions for lacking areas
+                    피드백 작성 가이드라인:
+                    - 기술적 정확성과 이해의 깊이를 평가하세요
+                    - 실무 적용 가능성을 평가하세요
+                    - 문제 해결 능력과 접근법을 평가하세요
+                    - 부족한 영역에 대한 구체적인 학습 방향을 제안하세요
                     """;
             case CLOSING -> """
-                    Feedback Writing Guidelines (write feedback in Korean):
-                    - Evaluate proactiveness and level of interest
-                    - Assess understanding and preparedness regarding company/position
-                    - Evaluate whether the closing was impressive
-                    - Suggest additional points to prepare
+                    피드백 작성 가이드라인:
+                    - 적극성과 관심 수준을 평가하세요
+                    - 회사/직무에 대한 이해와 준비성을 평가하세요
+                    - 마무리가 인상적인지 평가하세요
+                    - 추가로 준비할 사항을 제안하세요
                     """;
         };
     }
@@ -250,118 +243,6 @@ public class AiInterviewService {
                 """
                         "회사와 직무에 대한 깊은 관심과 준비성이 잘 드러났습니다. 적극적인 태도와 구체적인 질문이 인상적이었으며, 면접을 마무리하는 방식이 전문적이었습니다. 다만, 자신의 입사 후 기여 방안을 더 구체적으로 언급한다면 더욱 좋을 것입니다. 앞으로는 회사의 최근 뉴스나 프로젝트에 대한 이해를 바탕으로 한 추가 질문을 준비하시면 면접관에게 더 긍정적인 인상을 줄 수 있을 것입니다."
                         """;
-        };
-    }
-
-    /**
-     * 이력서/포트폴리오/기술스택 기반으로 질문을 실시간 생성
-     * 
-     * @param phase            면접 단계 (PERSONALITY 또는 TECHNICAL)
-     * @param interviewContext 면접 컨텍스트 (포지션, 레벨, 기술스택 등)
-     * @param resumeText       이력서 텍스트 (PDF에서 추출된 텍스트, 선택)
-     * @param portfolioText    포트폴리오 텍스트 (PDF에서 추출된 텍스트, 선택)
-     * @param previousAnswers  이전 답변 목록 (이전 답변 기반 추가 질문 생성 시 사용)
-     * @return 생성된 질문 텍스트
-     */
-    @Retry(name = "aiServiceRetry", fallbackMethod = "recoverQuestion")
-    public String generateQuestionByContext(
-            InterviewPhase phase,
-            String interviewContext,
-            String resumeText,
-            String portfolioText,
-            List<String> previousAnswers) {
-
-        String previousAnswersText = previousAnswers != null && !previousAnswers.isEmpty()
-                ? String.join("\n", previousAnswers)
-                : null;
-
-        String resumeSection = resumeText != null && !resumeText.isBlank()
-                ? "\n\nResume Content:\n" + resumeText
-                : "";
-        String portfolioSection = portfolioText != null && !portfolioText.isBlank()
-                ? "\n\nPortfolio Content:\n" + portfolioText
-                : "";
-        String previousAnswersSection = previousAnswersText != null && !previousAnswersText.isBlank()
-                ? "\n\nPrevious Answers:\n" + previousAnswersText +
-                        "\n\nBased on the previous answers, generate a deeper follow-up question."
-                : "";
-
-        String promptTemplate = buildQuestionPromptTemplate(phase);
-
-        // 파라미터를 Map으로 그룹화하여 .params() 사용
-        Map<String, Object> params = Map.of(
-                "interviewContext", interviewContext,
-                "resumeSection", resumeSection,
-                "portfolioSection", portfolioSection,
-                "previousAnswersSection", previousAnswersSection);
-
-        AiSingleQuestionResponse response = chatClient.prompt()
-                .user(u -> u
-                        .text(promptTemplate)
-                        .params(params))
-                .call()
-                .entity(AiSingleQuestionResponse.class);
-        return response.question();
-    }
-
-    /**
-     * generateQuestionByContext의 Fallback 메서드
-     * 모든 재시도 실패 시 호출됨
-     */
-    public String recoverQuestion(InterviewPhase phase, String interviewContext,
-                                  String resumeText, String portfolioText, List<String> previousAnswers, Exception e) {
-        log.error("AI 질문 생성 실패 (모든 재시도 실패) - phase: {}, Fallback 질문 반환", phase, e);
-        return getFallbackQuestion(phase);
-    }
-
-    /**
-     * 질문 생성용 프롬프트 템플릿 생성
-     */
-    private String buildQuestionPromptTemplate(InterviewPhase phase) {
-        return switch (phase) {
-            case PERSONALITY ->
-                """
-                        Generate a personality/behavioral interview question based on the candidate's information.
-
-                        Interview Context: {interviewContext}
-                        {resumeSection}
-                        {portfolioSection}
-                        {previousAnswersSection}
-
-                        Focus on: teamwork, conflict resolution, leadership, time management,
-                        stress handling, failure experiences, growth mindset.
-                        Use the STAR method (Situation, Task, Action, Result) when appropriate.
-
-                        CRITICAL: The question must be written in Korean language (한국어) only.
-                        Do NOT use English, Chinese, Japanese, or any other languages.
-
-                        Response format (JSON only, no markdown):
-                        {{"question": "한국어로 작성된 질문"}}
-                        """;
-            case TECHNICAL ->
-                """
-                        Generate a technical interview question tailored to the candidate.
-
-                        Interview Context: {interviewContext}
-                        {resumeSection}
-                        {portfolioSection}
-                        {previousAnswersSection}
-
-                        Question types to consider:
-                        - Concept explanation (e.g., "Explain the 4 principles of OOP")
-                        - Comparison questions (e.g., "What's the difference between Array and ArrayList?")
-                        - Experience-based questions (e.g., "How did you apply this in a real project?")
-                        - Problem-solving questions (e.g., "How would you solve this situation?")
-                        - Architecture design questions
-
-                        CRITICAL: The question must be written in Korean language (한국어) only.
-                        Do NOT use English, Chinese, Japanese, or any other languages.
-
-                        Response format (JSON only, no markdown):
-                        {{"question": "한국어로 작성된 질문"}}
-                        """;
-            default ->
-                throw new IllegalArgumentException("AI 생성 질문은 PERSONALITY 또는 TECHNICAL 단계에서만 가능합니다.");
         };
     }
 
@@ -392,29 +273,25 @@ public class AiInterviewService {
         return chatClient.prompt()
                 .user(u -> u
                         .text("""
-                                Create a comprehensive interview report analyzing the candidate's performance.
+                            지원자의 성과를 분석하는 종합 면접 리포트를 작성하세요.
 
-                                Position: {position}
+                            포지션: {position}
 
-                                Questions, Answers, and Scores by Interview Phase:
+                            면접 단계별 질문, 답변, 점수:
 
-                                {qnaContent}
+                            {qnaContent}
 
-                                CRITICAL: All text fields (summary, strengths, improvements, recommendedTopics)
-                                must be written in Korean language (한국어) only.
-                                Do NOT use English, Chinese, Japanese, or any other languages.
+                            응답 형식 (JSON만, 마크다운 없이):
+                            {{
+                                "summary": "종합 평가 (2-3문장)",
+                                "strengths": ["강점1", "강점2"],
+                                "improvements": ["개선점1", "개선점2"],
+                                "recommendedTopics": ["추천 학습 주제1", "추천 학습 주제2"],
+                                "overallScore": 7
+                            }}
 
-                                Response format (JSON only, no markdown):
-                                {{
-                                    "summary": "종합 평가 (2-3문장)",
-                                    "strengths": ["강점1", "강점2"],
-                                    "improvements": ["개선점1", "개선점2"],
-                                    "recommendedTopics": ["추천 학습 주제1", "추천 학습 주제2"],
-                                    "overallScore": 7
-                                }}
-
-                                overallScore should be between 1 and 10, calculated as an average considering all answers.
-                                """)
+                            overallScore는 1부터 10 사이여야 하며, 모든 답변을 고려한 평균으로 계산하세요.
+                            """)
                         .param("position", context)
                         .param("qnaContent", qnaContent))
                 .call()
@@ -433,5 +310,213 @@ public class AiInterviewService {
                 List.of(),
                 List.of(),
                 0);
+    }
+
+    /**
+     * AI 면접 에이전트의 단계별 처리 메서드
+     * 
+     * Technical/Behavioral 단계에서 사용자의 답변을 평가하고, 다음 질문을 생성할지 또는 다음 단계로 넘어갈지 판단합니다.
+     * 
+     * @param phase                     현재 면접 단계 (TECHNICAL 또는 PERSONALITY)
+     * @param previousAnswer            브릿지 질문(Opening 단계의 마지막 질문)에 대한 답변 (nullable)
+     * @param interviewContext          면접 컨텍스트 (포지션, 레벨, 기술스택 등)
+     * @param resumeText                이력서 텍스트 (nullable)
+     * @param portfolioText             포트폴리오 텍스트 (nullable)
+     * @param previousQuestions         이전 질문 목록 (현재 단계의 질문들)
+     * @param previousAnswers           이전 답변 목록 (현재 단계의 답변들, previousQuestions와 순서
+     *                                  매칭)
+     * @param currentTopicFollowUpCount 현재 주제에 대한 꼬리 질문 횟수 (최대 2회 제한)
+     * @return AI 에이전트의 응답 (thought, action, message, evaluation)
+     */
+    @Retry(name = "aiServiceRetry", fallbackMethod = "recoverInterviewStep")
+    public AiInterviewAgentResponse processInterviewStep(
+            InterviewPhase phase,
+            String previousAnswer,
+            String interviewContext,
+            String resumeText,
+            String portfolioText,
+            List<String> previousQuestions,
+            List<String> previousAnswers,
+            int currentTopicFollowUpCount) {
+
+        log.debug("AI 면접 에이전트 단계 처리 시작 - phase: {}, followUpCount: {}", phase, currentTopicFollowUpCount);
+
+        String systemPrompt = buildInterviewAgentSystemPrompt(phase);
+        String userPrompt = buildInterviewAgentUserPrompt(
+                phase,
+                previousAnswer,
+                interviewContext,
+                resumeText,
+                portfolioText,
+                previousQuestions,
+                previousAnswers,
+                currentTopicFollowUpCount);
+
+        // 별도의 ChatClient 인스턴스를 사용하여 System Prompt를 동적으로 설정
+        ChatClient agentChatClient = chatClientBuilder
+                .defaultSystem(systemPrompt)
+                .build();
+
+        AiInterviewAgentResponse response = agentChatClient.prompt()
+                .user(userPrompt)
+                .call()
+                .entity(AiInterviewAgentResponse.class);
+
+        log.info("AI 면접 에이전트 응답 생성 완료 - phase: {}, action: {}, message: {}",
+                phase, response.action(), response.message() != null ? "있음" : "없음");
+
+        return response;
+    }
+
+    /**
+     * processInterviewStep의 Fallback 메서드
+     */
+    public AiInterviewAgentResponse recoverInterviewStep(
+            InterviewPhase phase,
+            String previousAnswer,
+            String interviewContext,
+            String resumeText,
+            String portfolioText,
+            List<String> previousQuestions,
+            List<String> previousAnswers,
+            int currentTopicFollowUpCount,
+            Exception e) {
+        log.error("AI 면접 에이전트 처리 실패 (모든 재시도 실패) - phase: {}, Fallback 응답 반환", phase, e);
+
+        // Fallback: 기본 질문 생성 액션 반환
+        String fallbackQuestion = getFallbackQuestion(phase);
+        return new AiInterviewAgentResponse(
+                "AI 서비스 연결 문제로 판단을 수행할 수 없었습니다. 기본 질문을 생성합니다.",
+                InterviewAction.GENERATE_QUESTION,
+                fallbackQuestion,
+                null);
+    }
+
+    /**
+     * 면접 에이전트용 System Prompt 생성
+     */
+    private String buildInterviewAgentSystemPrompt(InterviewPhase phase) {
+        String phaseDescription = phase == InterviewPhase.TECHNICAL
+                ? "기술 면접"
+                : "인성/태도 면접";
+
+        String phaseGuidance = phase == InterviewPhase.TECHNICAL
+                ? """
+                    - 기술적 정확성, 깊이 있는 이해, 실무 적용 가능성을 중점적으로 평가합니다.
+                    - 개념 설명, 비교 분석, 경험 기반 질문, 문제 해결, 아키텍처 설계 등의 질문 유형을 활용합니다.
+                    - 각 기술 주제에 대해 최대 2개의 꼬리 질문(Deep Dive)을 허용합니다.
+                    """
+                : """
+                    - 협업 능력, 갈등 해결, 리더십, 시간 관리, 스트레스 대처, 실패 경험, 성장 마인드셋 등을 평가합니다.
+                    - STAR 기법(Situation, Task, Action, Result)을 활용한 구체적인 사례를 요구합니다.
+                    - 각 인성 주제에 대해 최대 2개의 꼬리 질문(Deep Dive)을 허용합니다.
+                    """;
+
+        return """
+            당신은 전문 면접관입니다. %s을 진행하고 있습니다.
+
+            **면접관 페르소나:**
+            - 친절하지만 전문적인 태도로 지원자를 평가합니다.
+            - 지원자의 답변을 깊이 있게 분석하고, 적절한 시점에 심화 질문을 합니다.
+            - 면접의 흐름과 시간을 관리하며, 충분히 평가가 완료되면 다음 단계로 넘어갑니다.
+
+            **면접 진행 원칙:**
+            %s
+            - 꼬리 질문은 한 주제당 최대 2회까지만 허용합니다 (현재 주제의 꼬리 질문 횟수가 2회 이상이면 반드시 NEXT_PHASE를 반환).
+            - 지원자의 답변이 충분히 깊이 있고 완성도가 높으면, 꼬리 질문 없이도 다음 주제나 다음 단계로 넘어갈 수 있습니다.
+            - 면접 단계가 충분히 진행되었다고 판단되면 (일반적으로 3-5개의 주제를 다룬 후) NEXT_PHASE 액션을 반환합니다.
+
+            **응답 형식:**
+            - JSON 형식으로만 응답하세요 (마크다운 코드 블록 없이).
+            - thought: 현재 상황에 대한 당신의 생각과 판단 근거
+            - action: "GENERATE_QUESTION" 또는 "NEXT_PHASE"
+            - message: action이 GENERATE_QUESTION일 때는 질문 내용, NEXT_PHASE일 때는 null
+            - evaluation: 방금 받은 답변에 대한 평가 (선택적)
+            """.formatted(phaseDescription, phaseGuidance);
+    }
+
+    /**
+     * 면접 에이전트용 User Prompt 생성
+     */
+    private String buildInterviewAgentUserPrompt(
+            InterviewPhase phase,
+            String previousAnswer,
+            String interviewContext,
+            String resumeText,
+            String portfolioText,
+            List<String> previousQuestions,
+            List<String> previousAnswers,
+            int currentTopicFollowUpCount) {
+
+        StringBuilder prompt = new StringBuilder();
+
+        // 브릿지 답변 처리 (첫 질문 생성 시)
+        if (previousAnswer != null && !previousAnswer.isBlank()) {
+            prompt.append("**브릿지 답변 (Opening 단계의 마지막 답변):**\n");
+            prompt.append(previousAnswer).append("\n\n");
+            prompt.append("위 답변에서 언급된 기술/경험/키워드를 추출하여 첫 번째 질문을 생성하세요.\n");
+            prompt.append("답변이 부실하거나 구체적이지 않다면, 이력서나 기술 스택 정보를 기반으로 질문을 생성하세요.\n\n");
+        } else {
+            prompt.append("**첫 질문 생성:**\n");
+            prompt.append("이력서나 기술 스택 정보를 기반으로 첫 번째 질문을 생성하세요.\n\n");
+        }
+
+        // 면접 컨텍스트
+        prompt.append("**면접 컨텍스트:**\n");
+        prompt.append(interviewContext).append("\n\n");
+
+        // 이력서/포트폴리오
+        if (resumeText != null && !resumeText.isBlank()) {
+            prompt.append("**이력서 내용:**\n");
+            prompt.append(resumeText.substring(0, Math.min(resumeText.length(), 2000))).append("\n\n");
+        }
+
+        if (portfolioText != null && !portfolioText.isBlank()) {
+            prompt.append("**포트폴리오 내용:**\n");
+            prompt.append(portfolioText.substring(0, Math.min(portfolioText.length(), 2000)))
+                    .append("\n\n");
+        }
+
+        // 이전 질문-답변 히스토리
+        if (previousQuestions != null && !previousQuestions.isEmpty() &&
+                previousAnswers != null && !previousAnswers.isEmpty()) {
+            prompt.append("**이전 질문-답변 히스토리:**\n");
+            int minSize = Math.min(previousQuestions.size(), previousAnswers.size());
+            for (int i = 0; i < minSize; i++) {
+                prompt.append(String.format("[질문 %d]\n", i + 1));
+                prompt.append(previousQuestions.get(i)).append("\n");
+                prompt.append("[답변]\n");
+                prompt.append(previousAnswers.get(i)).append("\n\n");
+            }
+        }
+
+        // 현재 주제의 꼬리 질문 횟수
+        prompt.append("**현재 주제의 꼬리 질문 횟수:** ").append(currentTopicFollowUpCount).append("/2\n\n");
+
+        // 지시사항
+        if (previousQuestions == null || previousQuestions.isEmpty()) {
+            prompt.append("**지시사항:**\n");
+            prompt.append("첫 번째 질문을 생성하세요. action은 GENERATE_QUESTION이고, message에 질문 내용을 작성하세요.\n");
+        } else {
+            prompt.append("**지시사항:**\n");
+            prompt.append("1. 마지막 답변을 평가하세요 (evaluation 필드에 간단히 작성).\n");
+            prompt.append("2. 다음 행동을 결정하세요:\n");
+            prompt.append("   - [꼬리 질문]: 현재 주제를 더 파고들어야 하면 -> action: GENERATE_QUESTION\n");
+            prompt.append("   - [새로운 주제]: 현재 주제는 충분하지만, 아직 기술 면접을 더 진행해야 하면(다른 기술 질문) -> action: GENERATE_QUESTION (새로운 주제로 질문 생성)\n");
+            prompt.append("   - [단계 종료]: 이미 3~4개의 대주제를 충분히 다루어, 이 기술 면접(Phase) 자체를 끝내도 된다면 -> action: NEXT_PHASE\n");
+            prompt.append("3. thought 필드에 판단 근거를 작성하세요.\n");
+        }
+
+        prompt.append("\n**응답 형식 (JSON만, 마크다운 없이):**\n");
+        prompt.append("""
+            {
+                "thought": "당신의 생각과 판단 근거",
+                "action": "GENERATE_QUESTION" 또는 "NEXT_PHASE",
+                "message": "질문 내용 (action이 GENERATE_QUESTION일 때만)",
+                "evaluation": "답변 평가 (선택적)"
+            }
+            """);
+
+        return prompt.toString();
     }
 }
