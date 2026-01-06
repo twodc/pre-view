@@ -27,8 +27,15 @@ public record InterviewCreateRequest(
     List<String> techStacks
 ) {
 
-    public Interview toEntity() {
+    /**
+     * 면접 엔티티로 변환합니다.
+     *
+     * @param memberId 면접을 생성하는 사용자의 ID
+     * @return Interview 엔티티
+     */
+    public Interview toEntity(Long memberId) {
         return Interview.builder()
+            .memberId(memberId)
             .title(title)
             .type(type)
             .position(position)
@@ -36,5 +43,5 @@ public record InterviewCreateRequest(
             .techStacks(techStacks)
             .status(InterviewStatus.READY)
             .build();
-    } 
+    }
 }

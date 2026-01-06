@@ -14,6 +14,7 @@ import com.example.pre_view.domain.interview.dto.AiInterviewAgentResponse;
 import com.example.pre_view.domain.interview.entity.Interview;
 import com.example.pre_view.domain.interview.enums.InterviewAction;
 import com.example.pre_view.domain.interview.enums.InterviewPhase;
+import com.example.pre_view.domain.interview.repository.InterviewRepository;
 import com.example.pre_view.domain.interview.service.AiInterviewService;
 import com.example.pre_view.domain.question.entity.Question;
 import com.example.pre_view.domain.question.repository.QuestionRepository;
@@ -35,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class AnswerFacade {
 
+    private final InterviewRepository interviewRepository;
     private final QuestionRepository questionRepository;
     private final AiInterviewService aiInterviewService;
     private final AnswerService answerService;
@@ -46,13 +48,26 @@ public class AnswerFacade {
      *
      * @param interviewId 면접 ID (보안 검증용)
      * @param questionId 질문 ID
+     * @param memberId 현재 사용자 ID (권한 검증용)
      * @param request 답변 생성 요청
      * @return 답변 응답 DTO
      */
-    public AnswerResponse createAnswer(Long interviewId, Long questionId, AnswerCreateRequest request) {
-        log.info("답변 생성 시작 - interviewId: {}, questionId: {}", interviewId, questionId);
+    public AnswerResponse createAnswer(Long interviewId, Long questionId, Long memberId, AnswerCreateRequest request) {
+        log.info("답변 생성 시작 - interviewId: {}, questionId: {}, memberId: {}", interviewId, questionId, memberId);
 
-        // 1. 질문 조회 및 검증
+        // 1. 면접 권한 검증
+        Interview interview = interviewRepository.findByIdAndMemberIdAndDeletedFalse(interviewId, memberId)
+                .orElseThrow(() -> {
+                    boolean exists = interviewRepository.findByIdAndDeletedFalse(interviewId).isPresent();
+                    if (exists) {
+                        log.warn("면접 접근 권한 없음 - interviewId: {}, memberId: {}", interviewId, memberId);
+                        return new BusinessException(ErrorCode.ACCESS_DENIED);
+                    }
+                    log.warn("면접을 찾을 수 없음 - interviewId: {}", interviewId);
+                    return new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND);
+                });
+
+        // 2. 질문 조회 및 검증
         Question question = questionRepository.findByIdWithInterview(questionId)
                 .orElseThrow(() -> {
                     log.warn("질문을 찾을 수 없음 - questionId: {}", questionId);
@@ -65,11 +80,9 @@ public class AnswerFacade {
                     interviewId, question.getInterview().getId());
             throw new BusinessException(ErrorCode.QUESTION_NOT_FOUND);
         }
-
-        Interview interview = question.getInterview();
         InterviewPhase phase = question.getPhase();
 
-        // 2. AI 피드백 생성 (트랜잭션 밖)
+        // 3. AI 피드백 생성 (트랜잭션 밖)
         log.debug("AI 피드백 생성 시작 - questionId: {}, phase: {}", questionId, phase);
         AiFeedbackResponse aiFeedback = aiInterviewService.generateFeedback(
                 phase,
@@ -77,14 +90,27 @@ public class AnswerFacade {
                 request.content());
         log.debug("AI 피드백 생성 완료 - questionId: {}, score: {}", questionId, aiFeedback.score());
 
-        // 3. Template 단계는 Agent 호출 없이 바로 저장
+        // 4. Template 단계는 Agent 호출 없이 바로 저장
         if (phase.isTemplate()) {
             log.debug("Template 단계 - Agent 호출 생략, 바로 저장 - phase: {}", phase);
             return answerService.saveAnswerForTemplate(question, request.content(), aiFeedback);
         }
 
-        // 4. AI 생성 단계(TECHNICAL, PERSONALITY)는 Agent 호출 (트랜잭션 밖)
+        // 5. AI 생성 단계(TECHNICAL, PERSONALITY)는 Agent 호출 (트랜잭션 밖)
         int followUpDepth = questionService.calculateFollowUpDepth(question);
+
+        // Follow-up 질문 제한 (최대 2회) - AI가 제한을 어길 수 있으므로 서버에서 강제
+        if (followUpDepth >= 2) {
+            log.info("Follow-up 질문 제한 도달 - questionId: {}, depth: {}, 강제로 다음 단계 전환",
+                    questionId, followUpDepth);
+            AiInterviewAgentResponse forcedResponse = new AiInterviewAgentResponse(
+                    "꼬리 질문 제한에 도달하여 다음 단계로 넘어갑니다.",
+                    InterviewAction.NEXT_PHASE,
+                    null,
+                    null
+            );
+            return answerService.saveAnswerWithAgentResult(question, request.content(), aiFeedback, forcedResponse);
+        }
 
         // 이전 질문-답변 히스토리 수집
         List<String> previousQuestions = new ArrayList<>(
@@ -124,7 +150,7 @@ public class AnswerFacade {
         log.info("Agent 호출 완료 - action: {}, hasMessage: {}",
                 agentResponse.action(), agentResponse.message() != null);
 
-        // 5. DB 저장 및 Agent 결과 처리 (트랜잭션 안)
+        // 6. DB 저장 및 Agent 결과 처리 (트랜잭션 안)
         return answerService.saveAnswerWithAgentResult(
                 question,
                 request.content(),

@@ -32,6 +32,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
     private final AccessTokenBlacklistService blacklistService;
+    private final LoginAttemptService loginAttemptService;
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -60,31 +61,49 @@ public class AuthService {
     /**
      * 일반 로그인
      *
+     * Brute Force 공격 방지를 위해 로그인 시도 횟수를 제한합니다.
+     * 5회 실패 시 5분간 계정이 잠금됩니다.
+     *
      * @param request 이메일, 비밀번호
      * @return 토큰 쌍
      */
     @Transactional(readOnly = true)
     public TokenResponse login(LoginRequest request) {
-        // 1. 이메일로 회원 조회
-        Member member = memberRepository.findByEmail(request.email())
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
+        String email = request.email();
 
-        // 2. 비밀번호가 설정된 회원인지 확인 (OAuth 전용 회원 체크)
+        // 1. 계정 잠금 확인
+        if (loginAttemptService.isLocked(email)) {
+            log.warn("잠금된 계정 로그인 시도 - email: {}", email);
+            throw new BusinessException(ErrorCode.ACCOUNT_LOCKED);
+        }
+
+        // 2. 이메일로 회원 조회
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    loginAttemptService.recordFailedAttempt(email);
+                    return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+                });
+
+        // 3. 비밀번호가 설정된 회원인지 확인 (OAuth 전용 회원 체크)
         if (!member.hasPassword()) {
             throw new BusinessException(ErrorCode.INVALID_LOGIN_METHOD);
         }
 
-        // 3. 비밀번호 검증
+        // 4. 비밀번호 검증
         if (!passwordEncoder.matches(request.password(), member.getPassword())) {
+            loginAttemptService.recordFailedAttempt(email);
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        // 4. JWT 토큰 발급
+        // 5. 로그인 성공 - 시도 횟수 초기화
+        loginAttemptService.resetAttempts(email);
+
+        // 6. JWT 토큰 발급
         String memberId = String.valueOf(member.getId());
         String accessToken = jwtTokenProvider.createAccessToken(memberId, member.getRole().getKey());
         String refreshToken = jwtTokenProvider.createRefreshToken(memberId);
 
-        // 5. Refresh Token Redis에 저장
+        // 7. Refresh Token Redis에 저장
         refreshTokenService.save(memberId, refreshToken);
 
         log.info("로그인 완료 - memberId: {}", memberId);

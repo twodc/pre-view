@@ -35,6 +35,9 @@ public class Interview extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
+
     private String title;
 
     @Enumerated(EnumType.STRING)
@@ -69,12 +72,8 @@ public class Interview extends BaseEntity {
 
     private Integer totalQuestions;
 
-    /**
-     * AI 리포트 캐시 (JSON 문자열로 저장)
-     * 최초 결과 조회 시 생성되어 저장됨
-     */
-    @Column(columnDefinition = "TEXT")
-    private String aiReportCache;
+    @Column(name = "ai_report", columnDefinition = "TEXT")
+    private String aiReport;
 
     /**
      * 동시에 면접 상태를 변경하는 것을 방지하기 위한 버전 필드
@@ -84,9 +83,10 @@ public class Interview extends BaseEntity {
     private Long version;
 
     @Builder
-    public Interview(String title, InterviewType type, Position position, ExperienceLevel level,
+    public Interview(Long memberId, String title, InterviewType type, Position position, ExperienceLevel level,
                      List<String> techStacks, String resumeText, String portfolioText,
                      InterviewStatus status, Integer totalQuestions) {
+        this.memberId = memberId;
         this.title = title;
         this.type = type != null ? type : InterviewType.TECHNICAL;
         this.position = position;
@@ -139,19 +139,12 @@ public class Interview extends BaseEntity {
         this.status = InterviewStatus.DONE;
     }
 
-    /**
-     * AI 리포트 캐시를 저장합니다.
-     * @param reportJson JSON 문자열로 변환된 리포트
-     */
-    public void cacheAiReport(String reportJson) {
-        this.aiReportCache = reportJson;
+    public void saveAiReport(String reportJson) {
+        this.aiReport = reportJson;
     }
 
-    /**
-     * 캐시된 AI 리포트가 있는지 확인합니다.
-     */
-    public boolean hasAiReportCache() {
-        return this.aiReportCache != null && !this.aiReportCache.isBlank();
+    public boolean hasAiReport() {
+        return this.aiReport != null && !this.aiReport.isBlank();
     }
 
     /**

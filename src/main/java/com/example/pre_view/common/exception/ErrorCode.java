@@ -26,6 +26,7 @@ public enum ErrorCode {
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH004", "유효하지 않은 Refresh Token입니다."),
     INVALID_TOKEN_TYPE(HttpStatus.BAD_REQUEST, "AUTH005", "잘못된 토큰 타입입니다."),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "AUTH006", "접근 권한이 없습니다."),
+    ACCOUNT_LOCKED(HttpStatus.TOO_MANY_REQUESTS, "AUTH007", "로그인 시도 횟수를 초과했습니다. 5분 후 다시 시도해주세요."),
 
     // 회원 (Member)
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "회원을 찾을 수 없습니다."),

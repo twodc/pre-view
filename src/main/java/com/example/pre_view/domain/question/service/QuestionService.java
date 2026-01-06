@@ -309,15 +309,15 @@ public class QuestionService {
 
     /**
      * 면접의 특정 단계에서 이전 답변 목록을 수집합니다.
+     * 최적화: DB 레벨에서 phase 필터링 (전체 조회 후 필터링 → DB 쿼리로 필터링)
      *
      * @param interview 면접 엔티티
      * @param phase 면접 단계
      * @return 해당 단계의 답변 내용 목록
      */
     public List<String> getPreviousAnswers(Interview interview, InterviewPhase phase) {
-        return answerRepository.findByInterviewIdWithQuestion(interview.getId())
+        return answerRepository.findByInterviewIdAndPhase(interview.getId(), phase)
                 .stream()
-                .filter(a -> a.getQuestion().getPhase() == phase)
                 .map(com.example.pre_view.domain.answer.entity.Answer::getContent)
                 .toList();
     }

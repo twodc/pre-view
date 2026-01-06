@@ -1,6 +1,7 @@
 package com.example.pre_view.domain.auth.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -8,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.pre_view.common.dto.ApiResponse;
+import com.example.pre_view.common.exception.BusinessException;
+import com.example.pre_view.common.exception.ErrorCode;
 import com.example.pre_view.domain.auth.dto.LoginRequest;
 import com.example.pre_view.domain.auth.dto.SignupRequest;
 import com.example.pre_view.domain.auth.dto.TokenReissueRequest;
@@ -74,6 +77,8 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
+    private static final String BEARER_PREFIX = "Bearer ";
+
     /**
      * 로그아웃
      *
@@ -83,10 +88,14 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "현재 토큰을 무효화합니다.")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @RequestHeader("Authorization") String bearerToken
+            @RequestHeader(value = "Authorization", required = false) String bearerToken
     ) {
-        // "Bearer " 접두사 제거
-        String accessToken = bearerToken.substring(7);
+        // Authorization 헤더 유효성 검증
+        if (!StringUtils.hasText(bearerToken) || !bearerToken.startsWith(BEARER_PREFIX)) {
+            throw new BusinessException(ErrorCode.INVALID_TOKEN);
+        }
+
+        String accessToken = bearerToken.substring(BEARER_PREFIX.length());
         authService.logout(accessToken);
         return ResponseEntity.ok(ApiResponse.ok("로그아웃 되었습니다."));
     }

@@ -54,7 +54,9 @@ public class FileUploadService {
 
     /**
      * 파일 업로드 공통 로직
-     * 
+     *
+     * Fail-Fast 원칙: 파일 검증을 먼저 수행하여 잘못된 파일은 DB 조회 전에 빠르게 실패시킵니다.
+     *
      * @param interviewId 면접 ID
      * @param file 업로드된 PDF 파일
      * @param fileType 파일 유형 (로깅용)
@@ -66,14 +68,17 @@ public class FileUploadService {
             MultipartFile file,
             String fileType,
             java.util.function.BiConsumer<Interview, String> updateFunction) {
-        
+
+        // 1. 파일 검증 및 텍스트 추출 먼저 수행 (Fail-Fast)
+        String extractedText = pdfExtractionService.extractText(file);
+
+        // 2. 검증 통과 후 DB 조회
         Interview interview = interviewRepository.findByIdAndDeletedFalse(interviewId)
                 .orElseThrow(() -> {
                     log.warn("면접을 찾을 수 없음 - interviewId: {}", interviewId);
                     return new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND);
                 });
 
-        String extractedText = pdfExtractionService.extractText(file);
         updateFunction.accept(interview, extractedText);
 
         log.info("{} 업로드 완료 - interviewId: {}, 추출된 텍스트 길이: {} 문자",
