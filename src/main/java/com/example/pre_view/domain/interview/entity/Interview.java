@@ -70,6 +70,13 @@ public class Interview extends BaseEntity {
     private Integer totalQuestions;
 
     /**
+     * AI 리포트 캐시 (JSON 문자열로 저장)
+     * 최초 결과 조회 시 생성되어 저장됨
+     */
+    @Column(columnDefinition = "TEXT")
+    private String aiReportCache;
+
+    /**
      * 동시에 면접 상태를 변경하는 것을 방지하기 위한 버전 필드
      */
     @Version
@@ -130,6 +137,21 @@ public class Interview extends BaseEntity {
 
     public void complete() {
         this.status = InterviewStatus.DONE;
+    }
+
+    /**
+     * AI 리포트 캐시를 저장합니다.
+     * @param reportJson JSON 문자열로 변환된 리포트
+     */
+    public void cacheAiReport(String reportJson) {
+        this.aiReportCache = reportJson;
+    }
+
+    /**
+     * 캐시된 AI 리포트가 있는지 확인합니다.
+     */
+    public boolean hasAiReportCache() {
+        return this.aiReportCache != null && !this.aiReportCache.isBlank();
     }
 
     /**

@@ -25,6 +25,8 @@ import com.example.pre_view.domain.question.dto.QuestionListResponse;
 import com.example.pre_view.domain.question.entity.Question;
 import com.example.pre_view.domain.question.repository.QuestionRepository;
 import com.example.pre_view.domain.question.service.QuestionService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +43,7 @@ public class InterviewService {
     private final QuestionService questionService;
     private final FileUploadService fileUploadService;
     private final InterviewStatusService interviewStatusService;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public InterviewResponse createInterview(InterviewCreateRequest requestDto) {
@@ -130,7 +133,10 @@ public class InterviewService {
     }
 
     /**
-     * 면접 결과 조회 및 AI 리포트 생성
+     * 면접 결과 조회 및 AI 리포트 생성 (캐싱 적용)
+     *
+     * 최초 조회 시 AI 리포트를 생성하고 DB에 캐싱합니다.
+     * 이후 조회 시에는 캐싱된 리포트를 반환하여 AI API 호출을 줄입니다.
      */
     @Transactional(readOnly = true)
     public InterviewResultResponse getInterviewResult(Long id) {
@@ -149,20 +155,51 @@ public class InterviewService {
         log.debug("면접 데이터 조회 완료 - interviewId: {}, 질문: {}개, 답변: {}개",
                 id, questions.size(), answers.size());
 
-        // AI 리포트 생성은 트랜잭션 밖에서 수행 (외부 API 호출)
-        log.debug("AI 리포트 생성 시작 - interviewId: {}", id);
-        AiReportResponse report = aiInterviewService.generateReport(interview.buildContext(), answers);
-        log.info("AI 리포트 생성 완료 - interviewId: {}", id);
+        // 캐시된 리포트가 있으면 사용, 없으면 AI 생성 후 캐싱
+        AiReportResponse report;
+        if (interview.hasAiReportCache()) {
+            log.info("캐시된 AI 리포트 사용 - interviewId: {}", id);
+            report = deserializeReport(interview.getAiReportCache());
+        } else {
+            log.debug("AI 리포트 생성 시작 - interviewId: {}", id);
+            report = aiInterviewService.generateReport(interview.buildContext(), answers);
+            log.info("AI 리포트 생성 완료 - interviewId: {}", id);
+
+            // 별도 트랜잭션으로 캐시 저장
+            interviewStatusService.cacheAiReport(id, serializeReport(report));
+        }
 
         InterviewResultResponse response = InterviewResultResponse.of(interview, questions, answers, report);
 
         // 결과 조회 시 면접 완료 처리 (별도 서비스의 새 트랜잭션으로 수행)
-        // 주의: Spring AOP 프록시는 private 메서드에 적용되지 않으므로,
-        // REQUIRES_NEW 전파가 필요한 로직은 별도 서비스로 분리하였습니다.
         interviewStatusService.completeInterviewIfNeeded(id);
 
         log.info("면접 결과 조회 완료 - interviewId: {}", id);
         return response;
+    }
+
+    /**
+     * AiReportResponse를 JSON 문자열로 직렬화
+     */
+    private String serializeReport(AiReportResponse report) {
+        try {
+            return objectMapper.writeValueAsString(report);
+        } catch (JsonProcessingException e) {
+            log.error("리포트 직렬화 실패", e);
+            return null;
+        }
+    }
+
+    /**
+     * JSON 문자열을 AiReportResponse로 역직렬화
+     */
+    private AiReportResponse deserializeReport(String json) {
+        try {
+            return objectMapper.readValue(json, AiReportResponse.class);
+        } catch (JsonProcessingException e) {
+            log.error("리포트 역직렬화 실패", e);
+            return null;
+        }
     }
 
     public InterviewResponse uploadResume(Long interviewId, MultipartFile file) {

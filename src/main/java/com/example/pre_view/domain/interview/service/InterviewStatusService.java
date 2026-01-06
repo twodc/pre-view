@@ -54,4 +54,31 @@ public class InterviewStatusService {
             throw e;
         }
     }
+
+    /**
+     * AI 리포트 캐시 저장 (별도 트랜잭션)
+     *
+     * 읽기 전용 트랜잭션에서 호출되므로 별도 트랜잭션으로 캐시를 저장합니다.
+     *
+     * @param interviewId 면접 ID
+     * @param reportJson  JSON 형태의 리포트 문자열
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void cacheAiReport(Long interviewId, String reportJson) {
+        if (reportJson == null) {
+            log.warn("리포트 캐싱 실패 (null) - interviewId: {}", interviewId);
+            return;
+        }
+
+        try {
+            Interview interview = interviewRepository.findByIdAndDeletedFalse(interviewId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.INTERVIEW_NOT_FOUND));
+
+            interview.cacheAiReport(reportJson);
+            log.info("AI 리포트 캐싱 완료 - interviewId: {}", interviewId);
+        } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+            log.warn("리포트 캐싱 중 동시성 충돌 발생 - interviewId: {}", interviewId);
+            // 캐싱 실패는 치명적이지 않으므로 예외를 던지지 않음
+        }
+    }
 }

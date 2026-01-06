@@ -7,6 +7,14 @@ public record AiReportResponse(
     List<String> strengths,
     List<String> improvements,
     List<String> recommendedTopics,
-    Integer overallScore
+    Integer overallScore,
+    List<QuestionFeedback> questionFeedbacks
 ) {
+    public record QuestionFeedback(
+        String question,
+        String userAnswer,
+        String detailedFeedback,
+        String recommendedAnswer,
+        Integer score
+    ) {}
 }

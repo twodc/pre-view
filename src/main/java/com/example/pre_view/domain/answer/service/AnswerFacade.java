@@ -102,7 +102,7 @@ public class AnswerFacade {
         AiInterviewAgentResponse agentResponse = aiInterviewService.processInterviewStep(
                 phase,
                 null,  // bridgeAnswer는 첫 질문에만 사용
-                interview.buildContext(),  // Interview 엔티티의 도메인 메서드 활용
+                interview.buildContext(),
                 interview.getResumeText(),
                 interview.getPortfolioText(),
                 previousQuestions,

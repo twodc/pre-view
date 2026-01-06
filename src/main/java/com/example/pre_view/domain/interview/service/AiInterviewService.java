@@ -96,7 +96,8 @@ public class AiInterviewService {
                 List.of(),
                 List.of(),
                 List.of(),
-                0);
+                0,
+                List.of());  // questionFeedbacks - 빈 리스트
     }
 
     /**
