@@ -5,6 +5,22 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
+  # Spring Security OAuth2 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: email, profile
+
+  # Redis 설정
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
   datasource:
     url: ${MYSQL_URL}
     username: ${MYSQL_USERNAME}
@@ -47,10 +63,31 @@ logging:
   level:
     root: INFO
     com.example.pre_view: DEBUG
-    org.springframework.web: DEBUG
+    # 인증 관련 로그 (운영 환경에서는 INFO로 변경)
+    com.example.pre_view.domain.auth: DEBUG
+    # Spring Security 로그 (디버깅 시에만 DEBUG)
+    org.springframework.security: INFO
+    org.springframework.web: INFO
     org.hibernate: WARN
+    # Redis 연결 로그
+    io.lettuce.core: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET}
+  access-expiration: 900000      # 15분 (밀리초)
+  refresh-expiration: 604800000  # 7일 (밀리초)
+
+# 애플리케이션 설정
+app:
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
+  cookie:
+    secure: ${COOKIE_SECURE:false}       # 프로덕션에서는 true (HTTPS)
+    same-site: ${COOKIE_SAME_SITE:Lax}   # Strict, Lax, None
+    domain: ${COOKIE_DOMAIN:}            # 서브도메인 공유 시 설정
 
 resilience4j:
   retry:

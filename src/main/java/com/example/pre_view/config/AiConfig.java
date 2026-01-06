@@ -1,4 +1,4 @@
-package com.example.pre_view.common.config;
+package com.example.pre_view.config;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
@@ -8,6 +8,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * AI(OpenAI) 관련 설정
+ *
+ * Spring AI를 사용하여 OpenAI API와 통신합니다.
+ * application.yaml에서 API 키, 모델명, temperature 등을 주입받습니다.
+ */
 @Configuration
 public class AiConfig {
 

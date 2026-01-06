@@ -32,6 +32,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 면접 관련 API 컨트롤러
+ *
+ * 면접 생성, 시작, 질문/답변 관리, 결과 조회 등 면접 전체 흐름을 담당합니다.
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/interviews")

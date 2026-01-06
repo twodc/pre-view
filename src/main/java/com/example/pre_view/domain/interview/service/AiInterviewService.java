@@ -18,6 +18,14 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.example.pre_view.common.service.PromptTemplateService;
 
+/**
+ * AI 면접 서비스
+ *
+ * OpenAI API를 통해 면접 관련 AI 기능을 제공합니다.
+ * - 피드백 생성: 답변에 대한 AI 평가
+ * - 리포트 생성: 면접 종합 분석
+ * - 면접 에이전트: 실시간 질문 생성 및 진행
+ */
 @Slf4j
 @Service
 public class AiInterviewService {

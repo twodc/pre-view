@@ -25,12 +25,17 @@ import com.example.pre_view.domain.question.dto.QuestionListResponse;
 import com.example.pre_view.domain.question.entity.Question;
 import com.example.pre_view.domain.question.repository.QuestionRepository;
 import com.example.pre_view.domain.question.service.QuestionService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 면접 관련 비즈니스 로직
+ *
+ * 면접 생성, 시작, 조회, 삭제 및 AI 리포트 생성을 담당합니다.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,7 +48,7 @@ public class InterviewService {
     private final QuestionService questionService;
     private final FileUploadService fileUploadService;
     private final InterviewStatusService interviewStatusService;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
     @Transactional
     public InterviewResponse createInterview(InterviewCreateRequest requestDto) {
@@ -183,8 +188,8 @@ public class InterviewService {
      */
     private String serializeReport(AiReportResponse report) {
         try {
-            return objectMapper.writeValueAsString(report);
-        } catch (JsonProcessingException e) {
+            return jsonMapper.writeValueAsString(report);
+        } catch (JacksonException e) {
             log.error("리포트 직렬화 실패", e);
             return null;
         }
@@ -195,8 +200,8 @@ public class InterviewService {
      */
     private AiReportResponse deserializeReport(String json) {
         try {
-            return objectMapper.readValue(json, AiReportResponse.class);
-        } catch (JsonProcessingException e) {
+            return jsonMapper.readValue(json, AiReportResponse.class);
+        } catch (JacksonException e) {
             log.error("리포트 역직렬화 실패", e);
             return null;
         }

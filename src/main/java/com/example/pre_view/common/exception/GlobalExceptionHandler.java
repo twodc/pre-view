@@ -8,6 +8,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 전역 예외 처리 핸들러
+ *
+ * 애플리케이션에서 발생하는 모든 예외를 중앙에서 처리하고,
+ * 일관된 형식의 에러 응답을 반환합니다.
+ */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
