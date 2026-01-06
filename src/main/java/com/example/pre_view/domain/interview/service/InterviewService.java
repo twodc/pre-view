@@ -87,7 +87,6 @@ public class InterviewService {
 
     @Transactional
     public QuestionListResponse getQuestions(Long interviewId, Long memberId) {
-        // 권한 검증
         getInterviewWithAuth(interviewId, memberId);
         return questionService.getQuestions(interviewId);
     }

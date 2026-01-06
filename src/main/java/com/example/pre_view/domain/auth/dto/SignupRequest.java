@@ -10,7 +10,10 @@ import jakarta.validation.constraints.Size;
  */
 public record SignupRequest(
         @NotBlank(message = "이메일은 필수입니다.")
-        @Email(message = "올바른 이메일 형식이 아닙니다.")
+        @Email(
+                message = "올바른 이메일 형식이 아닙니다.",
+                regexp = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"  // 도메인에 . 필수
+        )
         String email,
 
         @NotBlank(message = "이름은 필수입니다.")
