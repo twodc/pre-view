@@ -151,14 +151,14 @@ public class InterviewService {
         AiReportResponse report;
         if (interview.hasAiReport()) {
             log.info("저장된 AI 리포트 사용 - interviewId: {}", id);
-            report = deserializeReport(interview.getAiReport());
+            report = deserializeReport(id, interview.getAiReport());
         } else {
             log.debug("AI 리포트 생성 시작 - interviewId: {}", id);
             report = aiInterviewService.generateReport(interview.buildContext(), answers);
             log.info("AI 리포트 생성 완료 - interviewId: {}", id);
 
             // 별도 트랜잭션으로 리포트 저장
-            interviewStatusService.saveAiReport(id, serializeReport(report));
+            interviewStatusService.saveAiReport(id, serializeReport(id, report));
         }
 
         InterviewResultResponse response = InterviewResultResponse.of(interview, questions, answers, report);
@@ -173,11 +173,11 @@ public class InterviewService {
     /**
      * AiReportResponse를 JSON 문자열로 직렬화
      */
-    private String serializeReport(AiReportResponse report) {
+    private String serializeReport(Long interviewId, AiReportResponse report) {
         try {
             return jsonMapper.writeValueAsString(report);
         } catch (JacksonException e) {
-            log.error("리포트 직렬화 실패", e);
+            log.error("리포트 직렬화 실패 - interviewId: {}", interviewId, e);
             return null;
         }
     }
@@ -185,11 +185,11 @@ public class InterviewService {
     /**
      * JSON 문자열을 AiReportResponse로 역직렬화
      */
-    private AiReportResponse deserializeReport(String json) {
+    private AiReportResponse deserializeReport(Long interviewId, String json) {
         try {
             return jsonMapper.readValue(json, AiReportResponse.class);
         } catch (JacksonException e) {
-            log.error("리포트 역직렬화 실패", e);
+            log.error("리포트 역직렬화 실패 - interviewId: {}", interviewId, e);
             return null;
         }
     }

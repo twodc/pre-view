@@ -60,7 +60,7 @@ public class PdfExtractionService {
      */
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            log.warn("빈 파일 업로드 시도");
+            log.warn("빈 파일 업로드 시도 - 파일명: {}", file != null ? file.getOriginalFilename() : "null");
             throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR);
         }
 

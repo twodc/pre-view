@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 인증 관련 API 컨트롤러
@@ -30,6 +31,7 @@ import lombok.RequiredArgsConstructor;
  * - POST /api/v1/auth/reissue : Access Token 재발급
  * - POST /api/v1/auth/logout  : 로그아웃
  */
+@Slf4j
 @Tag(name = "Auth", description = "인증 API")
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -46,6 +48,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> signup(
             @Valid @RequestBody SignupRequest request
     ) {
+        log.info("회원가입 API 호출 - email: {}", request.email());
         authService.signup(request);
         return ResponseEntity.ok(ApiResponse.ok("회원가입이 완료되었습니다."));
     }
@@ -58,6 +61,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<TokenResponse>> login(
             @Valid @RequestBody LoginRequest request
     ) {
+        log.info("로그인 API 호출 - email: {}", request.email());
         TokenResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
@@ -73,6 +77,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<TokenResponse>> reissueToken(
             @Valid @RequestBody TokenReissueRequest request
     ) {
+        log.info("토큰 재발급 API 호출");
         TokenResponse response = authService.reissueToken(request.refreshToken());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
@@ -90,6 +95,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> logout(
             @RequestHeader(value = "Authorization", required = false) String bearerToken
     ) {
+        log.info("로그아웃 API 호출");
         // Authorization 헤더 유효성 검증
         if (!StringUtils.hasText(bearerToken) || !bearerToken.startsWith(BEARER_PREFIX)) {
             throw new BusinessException(ErrorCode.INVALID_TOKEN);
