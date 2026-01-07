@@ -56,7 +56,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/**",    // 로그인, 토큰 재발급 등
                                 "/oauth2/**",         // OAuth2 관련 경로
                                 "/login/**",          // 로그인 페이지
-                                "/swagger-ui/**",     // Swagger UI
+                                "/swagger-ui.html",   // Swagger UI 진입점
+                                "/swagger-ui/**",     // Swagger UI 리소스
                                 "/api-docs/**",       // API 문서
                                 "/v3/api-docs/**",    // OpenAPI 3.0
                                 "/error"              // 에러 페이지
