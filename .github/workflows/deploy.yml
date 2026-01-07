@@ -107,10 +107,25 @@ jobs:
             sudo systemctl status preview --no-pager | head -5
 
       - name: Health Check
-        run: |
-          sleep 10
-          curl -f http://${{ env.EC2_HOST }}:8080/api-docs || exit 1
-          echo "Backend deployment successful!"
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Waiting for application to start..."
+            sleep 15
+            for i in {1..5}; do
+              if curl -sf http://localhost:8080/api-docs > /dev/null; then
+                echo "Health check passed!"
+                exit 0
+              fi
+              echo "Attempt $i failed, retrying in 5s..."
+              sleep 5
+            done
+            echo "Health check failed after 5 attempts"
+            sudo journalctl -u preview -n 30 --no-pager
+            exit 1
 
       # 배포 완료 후 보안 그룹에서 러너 IP 제거 (성공/실패 모두)
       - name: Remove Runner IP from Security Group
@@ -193,9 +208,18 @@ jobs:
             rm -rf /tmp/preview-frontend/*
 
       - name: Health Check
-        run: |
-          curl -f http://${{ env.EC2_HOST }}/ || exit 1
-          echo "Frontend deployment successful!"
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            if curl -sf http://localhost/ > /dev/null; then
+              echo "Frontend health check passed!"
+            else
+              echo "Frontend health check failed"
+              exit 1
+            fi
 
       # 배포 완료 후 보안 그룹에서 러너 IP 제거 (성공/실패 모두)
       - name: Remove Runner IP from Security Group
