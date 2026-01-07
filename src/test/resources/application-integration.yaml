@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: pre-view-integration-test
+
+  # MySQL Testcontainers - @ServiceConnection이 자동으로 연결 정보를 주입합니다
+  # datasource 설정은 필요 없습니다! (Spring Boot 4.0 + Testcontainers 베스트 프랙티스)
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: false
+        show_sql: false
+    # MySQL Dialect 사용 (H2가 아닌 실제 MySQL)
+    database-platform: org.hibernate.dialect.MySQLDialect
+
+  # Redis - @ServiceConnection(name = "redis")가 자동으로 연결 정보를 주입합니다
+  # data.redis 설정은 필요 없습니다!
+
+  # OAuth2 테스트용 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            scope: email, profile
+
+  # AI 설정 (통합 테스트에서는 Mock 사용)
+  ai:
+    openai:
+      api-key: test-api-key
+      base-url: https://api.groq.com/openai
+      chat:
+        options:
+          model: llama-3.3-70b-versatile
+          temperature: 0.5
+          max-tokens: 800
+
+  # Virtual Thread 활성화 (Java 21+)
+  threads:
+    virtual:
+      enabled: true
+
+logging:
+  level:
+    root: WARN
+    com.example.pre_view: DEBUG
+    org.springframework.security: DEBUG
+    org.testcontainers: INFO
+    org.hibernate.SQL: DEBUG
+
+# JWT 설정 (테스트용)
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tZ2VuZXJhdGlvbi0xMjM0NTY3ODkw
+  access-expiration: 900000
+  refresh-expiration: 604800000
+
+# 애플리케이션 설정 (테스트용)
+app:
+  oauth2:
+    redirect-uri: http://localhost:3000/oauth/callback
+  cookie:
+    secure: false
+    same-site: Lax
+    domain:

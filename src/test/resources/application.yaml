@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: pre-view-test
+
+  # H2 인메모리 DB 사용
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  # Redis 비활성화 (테스트용)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  # OAuth2 비활성화
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            scope: email, profile
+
+  # AI 설정 (테스트용 더미 값)
+  ai:
+    openai:
+      api-key: test-api-key
+      base-url: https://api.groq.com/openai
+      chat:
+        options:
+          model: llama-3.3-70b-versatile
+          temperature: 0.5
+          max-tokens: 800
+
+  # autoconfigure 제외
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+logging:
+  level:
+    root: WARN
+    com.example.pre_view: INFO
+
+# JWT 설정 (테스트용)
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tZ2VuZXJhdGlvbi0xMjM0NTY3ODkw
+  access-expiration: 900000
+  refresh-expiration: 604800000
+
+# 애플리케이션 설정 (테스트용)
+app:
+  oauth2:
+    redirect-uri: http://localhost:3000/oauth/callback
+  cookie:
+    secure: false
+    same-site: Lax
+    domain:
