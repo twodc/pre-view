@@ -63,23 +63,27 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew clean build -x test
 
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2-key.pem
-          chmod 600 ~/.ssh/ec2-key.pem
-          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts
-
       - name: Deploy JAR to EC2
-        run: |
-          # JAR 파일 전송
-          scp -i ~/.ssh/ec2-key.pem \
-            build/libs/pre-view-0.0.1-SNAPSHOT.jar \
-            ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:/home/ec2-user/app/pre-view.jar
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "build/libs/pre-view-0.0.1-SNAPSHOT.jar"
+          target: "/home/ec2-user/app/"
+          strip_components: 2
 
-          # 서비스 재시작
-          ssh -i ~/.ssh/ec2-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} \
-            "sudo systemctl restart preview && sleep 5 && sudo systemctl status preview --no-pager | head -5"
+      - name: Rename JAR and Restart Service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            mv /home/ec2-user/app/pre-view-0.0.1-SNAPSHOT.jar /home/ec2-user/app/pre-view.jar
+            sudo systemctl restart preview
+            sleep 5
+            sudo systemctl status preview --no-pager | head -5
 
       - name: Health Check
         run: |
@@ -113,27 +117,27 @@ jobs:
         env:
           VITE_API_BASE_URL: /api/v1
 
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2-key.pem
-          chmod 600 ~/.ssh/ec2-key.pem
-          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts
-
       - name: Deploy Frontend to EC2
-        run: |
-          # 프론트엔드 파일 전송
-          scp -i ~/.ssh/ec2-key.pem -r \
-            frontend/dist/* \
-            ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:/tmp/preview-frontend/
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "frontend/dist/*"
+          target: "/tmp/preview-frontend/"
+          strip_components: 2
 
-          # 파일 이동 및 권한 설정
-          ssh -i ~/.ssh/ec2-key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
+      - name: Move Frontend Files
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
             sudo rm -rf /var/www/preview/*
             sudo cp -r /tmp/preview-frontend/* /var/www/preview/
             sudo chown -R nginx:nginx /var/www/preview
             rm -rf /tmp/preview-frontend/*
-          EOF
 
       - name: Health Check
         run: |
