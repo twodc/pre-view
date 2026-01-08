@@ -54,14 +54,21 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/",
                                 "/api/v1/auth/**",    // 로그인, 토큰 재발급 등
+                                "/api/loadtest/**",   // 부하 테스트용 (loadtest 프로파일에서만 활성화)
                                 "/oauth2/**",         // OAuth2 관련 경로
                                 "/login/**",          // 로그인 페이지
                                 "/swagger-ui.html",   // Swagger UI 진입점
                                 "/swagger-ui/**",     // Swagger UI 리소스
                                 "/api-docs/**",       // API 문서
                                 "/v3/api-docs/**",    // OpenAPI 3.0
-                                "/error"              // 에러 페이지
+                                "/error",             // 에러 페이지
+                                "/actuator/health",   // 헬스 체크 (기본)
+                                "/actuator/health/**", // liveness/readiness probes
+                                "/actuator/prometheus" // Prometheus 메트릭 (모니터링용)
                         ).permitAll()
+
+                        // Actuator 상세 정보는 인증 필요 (보안)
+                        .requestMatchers("/actuator/**").authenticated()
 
                         // 관리자 전용 경로
                         .requestMatchers("/admin/**").hasRole("ADMIN")

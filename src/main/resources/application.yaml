@@ -2,6 +2,11 @@ spring:
   application:
     name: pre-view
 
+  # 가상 스레드 활성화 (Java 21+)
+  threads:
+    virtual:
+      enabled: true
+
   config:
     import: optional:file:.env[.properties]
 
@@ -88,6 +93,44 @@ app:
     secure: ${COOKIE_SECURE:false}       # 프로덕션에서는 true (HTTPS)
     same-site: ${COOKIE_SAME_SITE:Lax}   # Strict, Lax, None
     domain: ${COOKIE_DOMAIN:}            # 서브도메인 공유 시 설정
+
+# ============================================
+# Actuator 관측성 설정 (프로덕션 기본값 - 최소 노출)
+# 로컬 개발: --spring.profiles.active=local 로 전체 노출
+# ============================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info  # 프로덕션: 최소한만 노출
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never  # 프로덕션: 상세 정보 숨김
+      show-components: never
+      probes:
+        enabled: true  # Kubernetes liveness/readiness 지원
+    prometheus:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true  # Resilience4j CircuitBreaker 상태 표시
+    redis:
+      enabled: true
+    db:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true  # 응답 시간 히스토그램
+      percentiles:
+        http.server.requests: 0.5, 0.75, 0.95, 0.99  # 백분위수
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 resilience4j:
   retry:

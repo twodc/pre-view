@@ -13,6 +13,9 @@ import com.example.pre_view.domain.interview.dto.AiReportResponse;
 import com.example.pre_view.domain.interview.enums.InterviewPhase;
 
 import io.github.resilience4j.retry.annotation.Retry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,9 +36,36 @@ public class AiInterviewService {
     private final ChatClient chatClient;
     private final PromptTemplateService promptTemplateService;
 
-    public AiInterviewService(ChatClient.Builder builder, PromptTemplateService promptTemplateService) {
+    // 메트릭
+    private final Timer feedbackTimer;
+    private final Timer reportTimer;
+    private final Timer interviewStepTimer;
+    private final Counter aiCallSuccessCounter;
+    private final Counter aiCallFailureCounter;
+
+    public AiInterviewService(ChatClient.Builder builder, PromptTemplateService promptTemplateService,
+            MeterRegistry meterRegistry) {
         this.promptTemplateService = promptTemplateService;
         this.chatClient = builder.build();
+
+        // AI 호출 응답 시간 메트릭
+        this.feedbackTimer = Timer.builder("ai.feedback.duration")
+                .description("AI 피드백 생성 응답 시간")
+                .register(meterRegistry);
+        this.reportTimer = Timer.builder("ai.report.duration")
+                .description("AI 리포트 생성 응답 시간")
+                .register(meterRegistry);
+        this.interviewStepTimer = Timer.builder("ai.interview.step.duration")
+                .description("AI 면접 에이전트 단계별 응답 시간")
+                .register(meterRegistry);
+
+        // AI 호출 성공/실패 카운터
+        this.aiCallSuccessCounter = Counter.builder("ai.calls.success")
+                .description("AI API 호출 성공 횟수")
+                .register(meterRegistry);
+        this.aiCallFailureCounter = Counter.builder("ai.calls.failure")
+                .description("AI API 호출 실패 횟수")
+                .register(meterRegistry);
     }
 
     /**
@@ -45,14 +75,19 @@ public class AiInterviewService {
     public AiFeedbackResponse generateFeedback(InterviewPhase phase, String question, String answer) {
         log.debug("AI 피드백 생성 시작 - phase: {}", phase);
 
-        // PromptTemplateService에서 단계별 통합 프롬프트 로드
-        String userPrompt = promptTemplateService.buildFeedbackUserPrompt(phase, question, answer);
+        return feedbackTimer.record(() -> {
+            // PromptTemplateService에서 단계별 통합 프롬프트 로드
+            String userPrompt = promptTemplateService.buildFeedbackUserPrompt(phase, question, answer);
 
-        return chatClient.prompt()
-                .system(promptTemplateService.getFeedbackSystemPrompt())
-                .user(userPrompt)
-                .call()
-                .entity(AiFeedbackResponse.class);
+            AiFeedbackResponse response = chatClient.prompt()
+                    .system(promptTemplateService.getFeedbackSystemPrompt())
+                    .user(userPrompt)
+                    .call()
+                    .entity(AiFeedbackResponse.class);
+
+            aiCallSuccessCounter.increment();
+            return response;
+        });
     }
 
     /**
@@ -61,6 +96,7 @@ public class AiInterviewService {
      */
     public AiFeedbackResponse recoverFeedback(InterviewPhase phase, String question, String answer, Exception e) {
         log.error("AI 피드백 생성 실패 (모든 재시도 실패) - phase: {}, 기본 피드백 반환", phase, e);
+        aiCallFailureCounter.increment();
         return new AiFeedbackResponse(
                 "AI 서비스 연결 문제로 자동 피드백을 생성할 수 없었습니다. " +
                         "답변은 저장되었으며, 잠시 후 다시 시도해주세요.",
@@ -76,21 +112,26 @@ public class AiInterviewService {
     public AiReportResponse generateReport(String context, List<Answer> answers) {
         log.debug("AI 리포트 생성 시작 - context: {}", context);
 
-        String qnaContent = answers.stream()
-                .map(a -> String.format("[%s] Question: %s\nAnswer: %s\nScore: %d",
-                        a.getQuestion().getPhase().getDescription(),
-                        a.getQuestion().getContent(),
-                        a.getContent(),
-                        a.getScore()))
-                .collect(Collectors.joining("\n\n"));
+        return reportTimer.record(() -> {
+            String qnaContent = answers.stream()
+                    .map(a -> String.format("[%s] Question: %s\nAnswer: %s\nScore: %d",
+                            a.getQuestion().getPhase().getDescription(),
+                            a.getQuestion().getContent(),
+                            a.getContent(),
+                            a.getScore()))
+                    .collect(Collectors.joining("\n\n"));
 
-        String userPrompt = promptTemplateService.buildReportUserPrompt(context, qnaContent);
+            String userPrompt = promptTemplateService.buildReportUserPrompt(context, qnaContent);
 
-        return chatClient.prompt()
-                .system(promptTemplateService.getFeedbackSystemPrompt())
-                .user(userPrompt)
-                .call()
-                .entity(AiReportResponse.class);
+            AiReportResponse response = chatClient.prompt()
+                    .system(promptTemplateService.getFeedbackSystemPrompt())
+                    .user(userPrompt)
+                    .call()
+                    .entity(AiReportResponse.class);
+
+            aiCallSuccessCounter.increment();
+            return response;
+        });
     }
 
     /**
@@ -99,6 +140,7 @@ public class AiInterviewService {
      */
     public AiReportResponse recoverReport(String context, List<Answer> answers, Exception e) {
         log.error("AI 리포트 생성 실패 (모든 재시도 실패) - context: {}, Fallback 리포트 반환", context, e);
+        aiCallFailureCounter.increment();
         return new AiReportResponse(
                 "AI 서비스 연결 문제로 리포트를 생성할 수 없습니다. 잠시 후 다시 시도해주세요.",
                 List.of(),
@@ -137,38 +179,41 @@ public class AiInterviewService {
 
         log.debug("AI 면접 에이전트 단계 처리 시작 - phase: {}, followUpCount: {}", phase, currentTopicFollowUpCount);
 
-        String systemPrompt = promptTemplateService.getInterviewAgentSystemPrompt(phase);
+        return interviewStepTimer.record(() -> {
+            String systemPrompt = promptTemplateService.getInterviewAgentSystemPrompt(phase);
 
-        String userPrompt;
-        if (previousQuestions == null || previousQuestions.isEmpty()) {
-            // 첫 질문 생성
-            userPrompt = promptTemplateService.buildInterviewAgentFirstQuestionPrompt(
-                    previousAnswer,
-                    interviewContext,
-                    resumeText,
-                    portfolioText,
-                    currentTopicFollowUpCount);
-        } else {
-            // 면접 진행 중
-            userPrompt = promptTemplateService.buildInterviewAgentContinuePrompt(
-                    interviewContext,
-                    resumeText,
-                    portfolioText,
-                    previousQuestions,
-                    previousAnswers,
-                    currentTopicFollowUpCount);
-        }
+            String userPrompt;
+            if (previousQuestions == null || previousQuestions.isEmpty()) {
+                // 첫 질문 생성
+                userPrompt = promptTemplateService.buildInterviewAgentFirstQuestionPrompt(
+                        previousAnswer,
+                        interviewContext,
+                        resumeText,
+                        portfolioText,
+                        currentTopicFollowUpCount);
+            } else {
+                // 면접 진행 중
+                userPrompt = promptTemplateService.buildInterviewAgentContinuePrompt(
+                        interviewContext,
+                        resumeText,
+                        portfolioText,
+                        previousQuestions,
+                        previousAnswers,
+                        currentTopicFollowUpCount);
+            }
 
-        AiInterviewAgentResponse response = chatClient.prompt()
-                .system(systemPrompt)
-                .user(userPrompt)
-                .call()
-                .entity(AiInterviewAgentResponse.class);
+            AiInterviewAgentResponse response = chatClient.prompt()
+                    .system(systemPrompt)
+                    .user(userPrompt)
+                    .call()
+                    .entity(AiInterviewAgentResponse.class);
 
-        log.info("AI 면접 에이전트 응답 생성 완료 - phase: {}, action: {}, message: {}",
-                phase, response.action(), response.message() != null ? "있음" : "없음");
+            log.info("AI 면접 에이전트 응답 생성 완료 - phase: {}, action: {}, message: {}",
+                    phase, response.action(), response.message() != null ? "있음" : "없음");
 
-        return response;
+            aiCallSuccessCounter.increment();
+            return response;
+        });
     }
 
     /**
@@ -188,7 +233,7 @@ public class AiInterviewService {
             int currentTopicFollowUpCount,
             Exception e) {
         log.error("AI 면접 에이전트 처리 실패 (모든 재시도 실패) - phase: {}, null 반환 (QuestionService에서 Fallback 처리)", phase, e);
-
+        aiCallFailureCounter.increment();
         return null;
     }
 }
