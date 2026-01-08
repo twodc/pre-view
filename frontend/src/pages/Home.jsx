@@ -1,51 +1,88 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-// Feature별 아이콘 정의
-const FEATURE_ICONS = {
-    question: (
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-    ),
-    feedback: (
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-    ),
-    followUp: (
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-        </svg>
-    ),
-    report: (
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-    ),
-};
+import { Button } from '../components/ui/button';
+import {
+    MessageSquare,
+    CheckCircle,
+    MessagesSquare,
+    FileText,
+    ArrowRight,
+    Sparkles,
+    Users,
+    Award,
+    Clock
+} from 'lucide-react';
 
 const FEATURES = [
     {
-        name: '맞춤형 질문 생성',
-        description: '지원하는 포지션과 경력에 맞춰 AI가 최적의 질문을 생성합니다.',
-        icon: 'question',
+        title: '맞춤형 질문 생성',
+        description: '이력서와 지원 포지션을 분석하여 실제 면접에서 나올 수 있는 질문을 AI가 생성합니다.',
+        icon: MessageSquare,
+        color: 'from-blue-500 to-cyan-400',
     },
     {
-        name: '실시간 피드백',
-        description: '답변 직후 AI가 개선점과 모범 답안을 제시하여 즉각적인 학습이 가능합니다.',
-        icon: 'feedback',
+        title: '실시간 AI 피드백',
+        description: '답변 직후 개선점과 모범 답안을 제시하여 즉각적인 학습이 가능합니다.',
+        icon: CheckCircle,
+        color: 'from-violet-500 to-blue-400',
     },
     {
-        name: '심층 꼬리 질문',
-        description: '꼬리를 무는 심층 질문으로 실제 면접 같은 긴장감과 대응력을 기르세요.',
-        icon: 'followUp',
+        title: '심층 꼬리 질문',
+        description: '실제 면접처럼 꼬리를 무는 질문으로 대응력과 논리력을 향상시킵니다.',
+        icon: MessagesSquare,
+        color: 'from-blue-600 to-indigo-400',
     },
     {
-        name: '종합 리포트',
-        description: '면접 종료 후 강점과 약점을 분석한 상세 리포트를 제공합니다.',
-        icon: 'report',
+        title: '종합 역량 리포트',
+        description: '면접 종료 후 강점과 보완점을 분석한 상세 리포트를 제공합니다.',
+        icon: FileText,
+        color: 'from-cyan-500 to-blue-400',
+    },
+];
+
+const STATS = [
+    { value: '10,000+', label: '면접 세션 완료', icon: Users },
+    { value: '96%', label: '사용자 만족도', icon: Award },
+    { value: '24/7', label: '언제든 이용 가능', icon: Clock },
+];
+
+const TESTIMONIALS = [
+    {
+        name: '김OO',
+        company: '네이버 합격',
+        comment: '실제 면접에서 나온 질문이 PreView에서 연습한 것과 거의 똑같았어요!',
+        gradient: 'from-cyan-400 to-blue-500',
+    },
+    {
+        name: '이OO',
+        company: '카카오 합격',
+        comment: 'AI 피드백 덕분에 제 답변의 문제점을 정확히 파악할 수 있었습니다.',
+        gradient: 'from-violet-400 to-blue-500',
+    },
+    {
+        name: '박OO',
+        company: '라인 합격',
+        comment: '꼬리질문 연습이 정말 도움됐어요. 실전에서 당황하지 않았습니다.',
+        gradient: 'from-emerald-400 to-cyan-500',
+    },
+    {
+        name: '최OO',
+        company: '쿠팡 합격',
+        comment: '체계적인 피드백으로 부족한 부분을 보완할 수 있었어요.',
+        gradient: 'from-orange-400 to-pink-500',
+    },
+    {
+        name: '정OO',
+        company: '토스 합격',
+        comment: '반복 연습으로 자신감이 생겼고, 면접에서 좋은 결과를 얻었습니다.',
+        gradient: 'from-blue-400 to-indigo-500',
+    },
+    {
+        name: '강OO',
+        company: '배민 합격',
+        comment: '종합 리포트가 정말 유용했어요. 객관적으로 제 실력을 파악할 수 있었습니다.',
+        gradient: 'from-pink-400 to-rose-500',
     },
 ];
 
@@ -53,143 +90,284 @@ const Home = () => {
     const { isAuthenticated, logout } = useAuth();
 
     return (
-        <div className="bg-white min-h-screen">
+        <div className="min-h-screen bg-white">
             {/* Navigation */}
-            <nav className="bg-white shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+                <div className="max-w-6xl mx-auto px-5">
                     <div className="flex justify-between h-16 items-center">
-                        <Link to="/" className="text-2xl font-bold text-indigo-600">
-                            PreView
+                        <Link to="/" className="flex items-center gap-2">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                                <Sparkles className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="text-xl font-bold text-gray-900">PreView</span>
                         </Link>
-                        <div className="flex items-center gap-4">
+                        <nav className="flex items-center gap-4">
                             {isAuthenticated ? (
-                                <button
+                                <Button
                                     onClick={logout}
-                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                                    className="bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 text-white font-semibold rounded-lg px-5 h-10 shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:shadow-blue-500/30"
                                 >
                                     로그아웃
-                                </button>
+                                </Button>
                             ) : (
                                 <>
                                     <Link
                                         to="/login"
-                                        className="text-gray-600 hover:text-gray-900 font-medium"
+                                        className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-3 py-2"
                                     >
                                         로그인
                                     </Link>
-                                    <Link
-                                        to="/signup"
-                                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                                    >
-                                        회원가입
+                                    <Link to="/signup">
+                                        <Button className="bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 text-white font-semibold rounded-lg px-5 h-10 shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:shadow-blue-500/30">
+                                            회원가입
+                                        </Button>
                                     </Link>
                                 </>
                             )}
-                        </div>
+                        </nav>
                     </div>
                 </div>
-            </nav>
+            </header>
 
             {/* Hero Section */}
-            <div className="relative overflow-hidden">
-                <div className="max-w-7xl mx-auto">
-                    <div className="relative z-10 pb-8 bg-white sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
-                        {/* 데스크탑에서 이미지와 텍스트 사이 대각선 구분선 */}
-                        <svg
-                            className="hidden lg:block absolute right-0 inset-y-0 h-full w-48 text-white transform translate-x-1/2"
-                            fill="currentColor"
-                            viewBox="0 0 100 100"
-                            preserveAspectRatio="none"
-                            aria-hidden="true"
-                        >
-                            <polygon points="50,0 100,0 50,100 0,100" />
-                        </svg>
+            <section className="relative pt-32 pb-24 px-5 overflow-hidden">
+                {/* Background Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-50/80 via-white to-white" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-br from-blue-400/20 via-cyan-300/10 to-transparent rounded-full blur-3xl" />
+                <div className="absolute top-40 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-violet-400/10 to-transparent rounded-full blur-3xl" />
 
-                        <main className="pt-10 mx-auto max-w-7xl px-4 sm:pt-12 sm:px-6 md:pt-16 lg:pt-20 lg:px-8 xl:pt-28">
-                            <div className="text-center lg:text-left">
-                                <h1 className="text-3xl tracking-tight font-extrabold text-gray-900 sm:text-4xl md:text-5xl lg:text-6xl">
-                                    <span className="block">AI 면접의 새로운 기준</span>
-                                    <span className="block text-indigo-600 mt-1 sm:mt-2">PreView</span>
-                                </h1>
-                                <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                                    실제 면접관 같은 AI와 함께 실전처럼 연습하세요.
-                                    <br className="hidden sm:inline" />
-                                    <span className="sm:hidden"> </span>
-                                    이력서 기반 맞춤 질문부터 실시간 피드백까지,
-                                    <br className="hidden sm:inline" />
-                                    <span className="sm:hidden"> </span>
-                                    당신의 취업 성공을 위한 완벽한 파트너입니다.
-                                </p>
-                                <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:justify-center lg:justify-start gap-3 sm:gap-4">
-                                    <Link
-                                        to={isAuthenticated ? "/create" : "/signup"}
-                                        className="w-full sm:w-auto flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 md:py-4 md:text-lg md:px-10"
-                                    >
-                                        {isAuthenticated ? "면접 시작하기" : "지금 시작하기"}
-                                    </Link>
-                                    {isAuthenticated && (
-                                        <Link
-                                            to="/dashboard"
-                                            className="w-full sm:w-auto flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-indigo-700 bg-indigo-100 hover:bg-indigo-200 transition-all duration-200 md:py-4 md:text-lg md:px-10"
-                                        >
-                                            내 면접 보기
-                                        </Link>
-                                    )}
+                <div className="max-w-6xl mx-auto relative">
+                    <div className="text-center max-w-3xl mx-auto">
+                        {/* Badge */}
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 mb-8">
+                            <span className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" />
+                            <span className="text-sm font-medium text-blue-600">AI 면접 코칭 플랫폼</span>
+                        </div>
+
+                        {/* Main Title */}
+                        <h1 className="text-[44px] sm:text-[56px] lg:text-[65px] font-bold text-gray-900 leading-[1.15] tracking-tight mb-6">
+                            면접이 두려우신가요?
+                            <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400">
+                                AI와 함께 준비하세요
+                            </span>
+                        </h1>
+
+                        {/* Subtitle */}
+                        <p className="text-lg sm:text-xl text-gray-500 max-w-xl mx-auto mb-10 leading-relaxed">
+                            실제 면접처럼 연습하고, 즉각적인 피드백으로
+                            <br className="hidden sm:block" />
+                            자신있게 면접장에 들어가세요.
+                        </p>
+
+                        {/* CTA Button */}
+                        <div className="flex justify-center">
+                            <Link to={isAuthenticated ? "/create" : "/signup"}>
+                                <Button className="bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 text-white font-semibold rounded-xl px-10 h-14 text-base shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5">
+                                    {isAuthenticated ? "지금 바로 면접 시작하기" : "지금 바로 면접 준비 시작하기"}
+                                    <ArrowRight className="ml-2 h-5 w-5" />
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="mt-20 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
+                        {STATS.map((stat, idx) => (
+                            <div
+                                key={stat.label}
+                                className="text-center p-6 rounded-2xl bg-white border border-gray-100 shadow-lg shadow-gray-100/50"
+                            >
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-400/10 flex items-center justify-center mx-auto mb-4">
+                                    <stat.icon className="w-6 h-6 text-blue-500" />
                                 </div>
+                                <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
+                                <div className="text-sm text-gray-500">{stat.label}</div>
                             </div>
-                        </main>
+                        ))}
                     </div>
                 </div>
+            </section>
 
-                {/* Hero Image - 모바일에서는 상단, 데스크탑에서는 우측 */}
-                <div className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
-                    <div className="h-48 w-full bg-gradient-to-br from-indigo-400 to-purple-500 sm:h-64 md:h-80 lg:w-full lg:h-full flex items-center justify-center">
-                        {/* 이미지가 없을 경우 플레이스홀더 */}
-                        <div className="text-white text-center p-8">
-                            <svg className="mx-auto h-16 w-16 sm:h-24 sm:w-24 opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            <p className="mt-4 text-lg sm:text-xl font-medium opacity-90">AI 모의 면접</p>
+            {/* Features Section with Background Effect */}
+            <section className="py-24 px-5 relative overflow-hidden">
+                {/* Background decorations */}
+                <div className="absolute inset-0 bg-gradient-to-b from-white via-gray-50/50 to-gray-50" />
+                <div className="absolute top-0 left-0 w-full h-full">
+                    {/* Floating shapes */}
+                    <div className="absolute top-20 left-[10%] w-72 h-72 bg-blue-100/40 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+                    <div className="absolute top-40 right-[15%] w-64 h-64 bg-cyan-100/40 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+                    <div className="absolute bottom-20 left-[20%] w-80 h-80 bg-violet-100/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+                    <div className="absolute bottom-40 right-[10%] w-56 h-56 bg-blue-100/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4.5s', animationDelay: '0.5s' }} />
+                    {/* Grid pattern overlay */}
+                    <div className="absolute inset-0 opacity-[0.015]" style={{
+                        backgroundImage: `linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)`,
+                        backgroundSize: '60px 60px'
+                    }} />
+                </div>
+
+                <div className="max-w-6xl mx-auto relative">
+                    <div className="text-center mb-16">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 mb-6">
+                            <span className="text-sm font-medium text-blue-600">주요 기능</span>
+                        </div>
+                        <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-bold text-gray-900 tracking-tight mb-4">
+                            왜 PreView인가요?
+                        </h2>
+                        <p className="text-lg text-gray-500 max-w-xl mx-auto">
+                            AI 기술로 실제 면접 환경을 재현하고,
+                            <br className="hidden sm:block" />
+                            맞춤형 피드백으로 효과적인 준비를 돕습니다.
+                        </p>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-6">
+                        {FEATURES.map((feature, index) => (
+                            <div
+                                key={feature.title}
+                                className="group p-8 rounded-3xl bg-white/80 backdrop-blur-sm border border-gray-100 shadow-lg shadow-gray-100/50 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300 hover:-translate-y-1"
+                            >
+                                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20`}>
+                                    <feature.icon className="h-7 w-7 text-white" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                                    {feature.title}
+                                </h3>
+                                <p className="text-gray-500 leading-relaxed">
+                                    {feature.description}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Social Proof Section - groupby style */}
+            <section className="py-24 px-5 bg-gray-50">
+                <div className="max-w-6xl mx-auto">
+                    <div className="grid sm:grid-cols-2 gap-12 items-center">
+                        {/* Left - Auto-scrolling testimonial cards */}
+                        <div className="relative h-[480px] overflow-hidden order-2 sm:order-1">
+                            {/* Gradient fade overlays */}
+                            <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-gray-50 via-gray-50/80 to-transparent z-10 pointer-events-none" />
+                            <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent z-10 pointer-events-none" />
+
+                            {/* Scrolling container */}
+                            <div className="animate-scroll-up space-y-4">
+                                {/* First set of testimonials */}
+                                {TESTIMONIALS.map((testimonial, idx) => (
+                                    <div
+                                        key={`first-${idx}`}
+                                        className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-300"
+                                    >
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${testimonial.gradient} shadow-md flex items-center justify-center`}>
+                                                <span className="text-white font-bold text-sm">{testimonial.name.charAt(0)}</span>
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                                                <div className="text-sm text-blue-500 font-medium">{testimonial.company}</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-600 leading-relaxed">
+                                            "{testimonial.comment}"
+                                        </p>
+                                    </div>
+                                ))}
+                                {/* Duplicated set for seamless loop */}
+                                {TESTIMONIALS.map((testimonial, idx) => (
+                                    <div
+                                        key={`second-${idx}`}
+                                        className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-300"
+                                    >
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${testimonial.gradient} shadow-md flex items-center justify-center`}>
+                                                <span className="text-white font-bold text-sm">{testimonial.name.charAt(0)}</span>
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                                                <div className="text-sm text-blue-500 font-medium">{testimonial.company}</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-600 leading-relaxed">
+                                            "{testimonial.comment}"
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Right - Text content */}
+                        <div className="order-1 sm:order-2">
+                            <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-bold text-gray-900 tracking-tight mb-4 leading-tight">
+                                실제 합격자들이 검증한
+                                <br />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500">
+                                    AI 면접 코칭
+                                </span>
+                            </h2>
+                            <p className="text-lg text-gray-500 leading-relaxed mb-8">
+                                네이버, 카카오, 토스 등 대기업 합격자들의
+                                생생한 후기를 확인하세요.
+                            </p>
+                            <Link to={isAuthenticated ? "/create" : "/signup"}>
+                                <Button className="bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 text-white font-semibold rounded-xl px-8 h-12 shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-0.5">
+                                    나도 시작하기
+                                    <ArrowRight className="ml-2 h-5 w-5" />
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            {/* Feature Section */}
-            <div className="py-12 sm:py-16 lg:py-20 bg-gray-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center">
-                        <h2 className="text-sm sm:text-base text-indigo-600 font-semibold tracking-wide uppercase">Features</h2>
-                        <p className="mt-2 text-2xl sm:text-3xl lg:text-4xl leading-8 font-extrabold tracking-tight text-gray-900">
-                            완벽한 면접 준비를 위한 기능
-                        </p>
-                        <p className="mt-4 max-w-2xl text-base sm:text-lg lg:text-xl text-gray-500 mx-auto">
-                            직무별 전문 질문과 AI의 정교한 평가로 면접 실력을 향상시키세요.
-                        </p>
-                    </div>
-
-                    <div className="mt-10 sm:mt-12 lg:mt-16">
-                        <dl className="space-y-8 sm:space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10 lg:gap-x-12">
-                            {FEATURES.map((feature) => (
-                                <div key={feature.name} className="relative flex flex-col sm:flex-row">
-                                    <dt className="flex items-start">
-                                        <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-indigo-500 text-white shadow-md">
-                                            {FEATURE_ICONS[feature.icon]}
-                                        </div>
-                                        <div className="ml-4 sm:ml-5">
-                                            <p className="text-lg leading-6 font-semibold text-gray-900">{feature.name}</p>
-                                            <dd className="mt-1 sm:mt-2 text-base text-gray-500">
-                                                {feature.description}
-                                            </dd>
-                                        </div>
-                                    </dt>
-                                </div>
-                            ))}
-                        </dl>
-                    </div>
-
+            {/* CTA Section with Background Image */}
+            <section className="py-24 px-5 bg-gray-50 relative overflow-hidden">
+                {/* Background Image - 면접 이미지 자리 */}
+                <div className="absolute inset-0 z-0">
+                    {/* TODO: 나노 이미지로 교체 - /assets/interview-bg.png */}
+                    <img
+                        src="/interview-bg.png"
+                        alt=""
+                        className="w-full h-full object-cover opacity-10"
+                        onError={(e) => e.target.style.display = 'none'}
+                    />
+                    {/* Overlay gradient for readability */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-gray-50 via-gray-50/95 to-gray-50" />
                 </div>
-            </div>
+
+                <div className="max-w-3xl mx-auto text-center relative z-10">
+                    <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                        지금 바로 시작하세요
+                    </h2>
+                    <p className="text-lg text-gray-500 mb-10">
+                        무료로 AI 면접 연습을 시작하고,
+                        <br className="hidden sm:block" />
+                        원하는 회사에 한 걸음 더 가까워지세요.
+                    </p>
+                    <Link to={isAuthenticated ? "/create" : "/signup"}>
+                        <Button className="bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 text-white font-semibold rounded-xl px-10 h-14 text-lg shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5">
+                            {isAuthenticated ? "새 면접 생성" : "무료 회원가입"}
+                            <ArrowRight className="ml-2 h-5 w-5" />
+                        </Button>
+                    </Link>
+                </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="py-12 px-5 border-t border-gray-100">
+                <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                            <Sparkles className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-lg font-bold text-gray-900">PreView</span>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                        © 2025 PreView. AI 기반 면접 연습 플랫폼
+                    </p>
+                </div>
+            </footer>
         </div>
     );
 };

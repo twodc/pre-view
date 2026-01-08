@@ -1,121 +1,114 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Sparkles, Menu, X, FileText, Plus, User } from 'lucide-react';
 
 const Layout = ({ children }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
+    const { logout } = useAuth();
 
-    // 현재 경로와 일치하는지 확인
     const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+
+    const handleLogout = async () => {
+        await logout();
+        navigate('/');
+    };
+
+    const navItems = [
+        { path: '/create', label: '새 면접', icon: Plus },
+        { path: '/mypage', label: '마이페이지', icon: User },
+    ];
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
-                        <div className="flex">
-                            <div className="flex-shrink-0 flex items-center">
-                                <Link to="/" className="text-xl font-bold text-indigo-600">PreView</Link>
+            {/* Navigation */}
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+                <div className="max-w-6xl mx-auto px-5">
+                    <div className="flex justify-between h-16 items-center">
+                        {/* Logo */}
+                        <Link to="/" className="flex items-center gap-2">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                                <Sparkles className="w-5 h-5 text-white" />
                             </div>
-                            {/* Desktop Navigation */}
-                            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+                            <span className="text-xl font-bold text-gray-900">PreView</span>
+                        </Link>
+
+                        {/* Desktop Navigation */}
+                        <div className="hidden sm:flex items-center gap-1">
+                            {navItems.map((item) => (
                                 <Link
-                                    to="/dashboard"
-                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
-                                        isActive('/dashboard')
-                                            ? 'border-indigo-500 text-gray-900'
-                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                                    key={item.path}
+                                    to={item.path}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                        isActive(item.path)
+                                            ? 'bg-blue-50 text-blue-600'
+                                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                                     }`}
                                 >
-                                    내 면접
+                                    <item.icon className="w-4 h-4" />
+                                    {item.label}
                                 </Link>
-                                <Link
-                                    to="/create"
-                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
-                                        isActive('/create')
-                                            ? 'border-indigo-500 text-gray-900'
-                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    }`}
-                                >
-                                    새 면접
-                                </Link>
-                                <Link
-                                    to="/mypage"
-                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
-                                        isActive('/mypage')
-                                            ? 'border-indigo-500 text-gray-900'
-                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    }`}
-                                >
-                                    내 정보
-                                </Link>
-                            </div>
+                            ))}
+                            <button
+                                onClick={handleLogout}
+                                className="ml-2 bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 text-white font-semibold rounded-lg px-5 h-10 shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:shadow-blue-500/30 text-sm"
+                            >
+                                로그아웃
+                            </button>
                         </div>
 
                         {/* Mobile menu button */}
-                        <div className="flex items-center sm:hidden">
-                            <button
-                                type="button"
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors"
-                                aria-expanded="false"
-                            >
-                                <span className="sr-only">메뉴 열기</span>
-                                {isMobileMenuOpen ? (
-                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                ) : (
-                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                                    </svg>
-                                )}
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="sm:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+                        >
+                            {isMobileMenuOpen ? (
+                                <X className="w-6 h-6" />
+                            ) : (
+                                <Menu className="w-6 h-6" />
+                            )}
+                        </button>
                     </div>
                 </div>
 
                 {/* Mobile menu */}
-                <div className={`sm:hidden transition-all duration-200 ease-in-out ${isMobileMenuOpen ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-                    <div className="pt-2 pb-3 space-y-1 bg-white border-t border-gray-100">
-                        <Link
-                            to="/dashboard"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium transition-colors ${
-                                isActive('/dashboard')
-                                    ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-                            }`}
+                <div className={`sm:hidden transition-all duration-200 ${isMobileMenuOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                    <div className="px-5 py-3 space-y-1 bg-white border-t border-gray-100">
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                                    isActive(item.path)
+                                        ? 'bg-blue-50 text-blue-600'
+                                        : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                            >
+                                <item.icon className="w-5 h-5" />
+                                {item.label}
+                            </Link>
+                        ))}
+                        <button
+                            onClick={() => {
+                                setIsMobileMenuOpen(false);
+                                handleLogout();
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-500 hover:bg-blue-50 transition-all"
                         >
-                            내 면접
-                        </Link>
-                        <Link
-                            to="/create"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium transition-colors ${
-                                isActive('/create')
-                                    ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-                            }`}
-                        >
-                            새 면접
-                        </Link>
-                        <Link
-                            to="/mypage"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium transition-colors ${
-                                isActive('/mypage')
-                                    ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-                            }`}
-                        >
-                            내 정보
-                        </Link>
+                            로그아웃
+                        </button>
                     </div>
                 </div>
             </nav>
-            <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                {children}
+
+            {/* Main Content */}
+            <main className="pt-20 pb-12 px-5">
+                <div className="max-w-6xl mx-auto">
+                    {children}
+                </div>
             </main>
         </div>
     );

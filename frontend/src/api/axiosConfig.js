@@ -57,6 +57,8 @@ api.interceptors.response.use(
                     // 재발급 실패 시 로그아웃 처리
                     localStorage.removeItem('accessToken');
                     localStorage.removeItem('refreshToken');
+                    // AuthContext 상태 동기화를 위한 커스텀 이벤트 발생
+                    window.dispatchEvent(new CustomEvent('auth:logout'));
                     window.location.href = '/login';
                     return Promise.reject(refreshError);
                 }
