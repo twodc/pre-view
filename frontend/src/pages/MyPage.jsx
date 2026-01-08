@@ -9,7 +9,7 @@ import { Button } from '../components/ui/button';
 
 const MyPage = () => {
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
 
     // 프로필 상태
     const [profile, setProfile] = useState(null);
@@ -102,11 +102,6 @@ const MyPage = () => {
         }
     };
 
-    const handleLogout = async () => {
-        await logout();
-        navigate('/');
-    };
-
     const getStatusStyle = (status) => {
         switch (status) {
             case 'DONE':
@@ -191,25 +186,17 @@ const MyPage = () => {
                             </div>
 
                             {/* 액션 버튼 */}
-                            <div className="flex items-center gap-2 sm:flex-shrink-0">
-                                {!editing && (
-                                    <button
-                                        onClick={() => setEditing(true)}
-                                        className="px-4 py-2 border border-blue-500 text-blue-500 font-medium rounded-xl hover:bg-blue-50 transition-all duration-200 flex items-center gap-2"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                        수정
-                                    </button>
-                                )}
+                            {!editing && (
                                 <button
-                                    onClick={handleLogout}
-                                    className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                                    onClick={() => setEditing(true)}
+                                    className="px-4 py-2 border border-blue-500 text-blue-500 font-medium rounded-xl hover:bg-blue-50 transition-all duration-200 flex items-center gap-2 sm:flex-shrink-0"
                                 >
-                                    로그아웃
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                    수정
                                 </button>
-                            </div>
+                            )}
                         </div>
 
                         {/* 수정 폼 */}
