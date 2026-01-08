@@ -1,5 +1,7 @@
 package com.example.pre_view.domain.member.service;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,17 +27,21 @@ public class MemberService {
 
     /**
      * 현재 로그인한 회원 정보 조회
+     * - Redis 캐시 적용 (TTL: 30분)
      */
+    @Cacheable(value = "member", key = "#memberId")
     @Transactional(readOnly = true)
     public MemberResponse getCurrentMember(Long memberId) {
-        log.debug("회원 정보 조회 - memberId: {}", memberId);
+        log.debug("회원 정보 조회 (DB) - memberId: {}", memberId);
         Member member = getMemberById(memberId);
         return MemberResponse.from(member);
     }
 
     /**
      * 회원 프로필 수정
+     * - 수정 시 캐시 무효화
      */
+    @CacheEvict(value = "member", key = "#memberId")
     @Transactional
     public MemberResponse updateProfile(Long memberId, MemberUpdateRequest request) {
         log.info("회원 프로필 수정 시작 - memberId: {}", memberId);

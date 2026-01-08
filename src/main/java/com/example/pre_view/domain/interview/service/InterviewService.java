@@ -2,6 +2,9 @@ package com.example.pre_view.domain.interview.service;
 
 import java.util.List;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -50,6 +53,7 @@ public class InterviewService {
     private final InterviewStatusService interviewStatusService;
     private final JsonMapper jsonMapper;
 
+    @CacheEvict(value = "interviewList", key = "#memberId")
     @Transactional
     public InterviewResponse createInterview(InterviewCreateRequest requestDto, Long memberId) {
         log.debug("면접 엔티티 생성 시작 - type: {}, position: {}, level: {}, memberId: {}",
@@ -91,9 +95,13 @@ public class InterviewService {
         return questionService.getQuestions(interviewId);
     }
 
+    /**
+     * 면접 단건 조회 - Redis 캐시 적용 (TTL: 5분)
+     */
+    @Cacheable(value = "interview", key = "#interviewId")
     @Transactional(readOnly = true)
     public InterviewResponse getInterview(Long interviewId, Long memberId) {
-        log.debug("면접 조회 시작 - interviewId: {}, memberId: {}", interviewId, memberId);
+        log.debug("면접 조회 (DB) - interviewId: {}, memberId: {}", interviewId, memberId);
 
         Interview interview = getInterviewWithAuth(interviewId, memberId);
 
@@ -118,6 +126,13 @@ public class InterviewService {
         return responsePage;
     }
 
+    /**
+     * 면접 삭제 - 관련 캐시 무효화
+     */
+    @Caching(evict = {
+            @CacheEvict(value = "interview", key = "#interviewId"),
+            @CacheEvict(value = "interviewList", key = "#memberId")
+    })
     @Transactional
     public void deleteInterview(Long interviewId, Long memberId) {
         log.info("면접 삭제 처리 시작 - interviewId: {}, memberId: {}", interviewId, memberId);
