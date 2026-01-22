@@ -1,0 +1,23 @@
+language: "ko-KR"
+early_access: false
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    ignore_title_keywords:
+      - "WIP"
+      - "Draft"
+    drafts: false
+    base_branches:
+      - "main"
+      - "master"
+      - "develop"
+  tools:
+    shellcheck:
+      enabled: true
+    gitleaks:
+      enabled: true
+chat:
+  auto_reply: true

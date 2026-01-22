@@ -113,8 +113,8 @@ public class QuestionService {
      * @param previousPhase 이전 단계 (Opening 등)
      * @param nextPhase     다음 단계 (Technical 또는 Personality)
      */
-    @Transactional
-    public void generateFirstQuestionByAgent(Interview interview, InterviewPhase previousPhase, InterviewPhase nextPhase) {
+    public void generateFirstQuestionByAgent(Interview interview, InterviewPhase previousPhase,
+            InterviewPhase nextPhase) {
         try {
             log.info("AI 에이전트를 통한 첫 질문 생성 시작 - interviewId: {}, phase: {}", interview.getId(), nextPhase);
 
@@ -127,8 +127,10 @@ public class QuestionService {
                         .max((a1, a2) -> {
                             Integer seq1 = a1.getQuestion().getSequence();
                             Integer seq2 = a2.getQuestion().getSequence();
-                            if (seq1 == null) return -1;
-                            if (seq2 == null) return 1;
+                            if (seq1 == null)
+                                return -1;
+                            if (seq2 == null)
+                                return 1;
                             return seq1.compareTo(seq2);
                         })
                         .map(com.example.pre_view.domain.answer.entity.Answer::getContent)
@@ -138,7 +140,7 @@ public class QuestionService {
             // 면접 컨텍스트 생성 (Interview 엔티티의 도메인 메서드 활용)
             String interviewContext = interview.buildContext();
 
-            // 에이전트 호출
+            // 에이전트 호출 (시간이 오래 걸릴 수 있으므로 트랜잭션 밖에서 수행)
             AiInterviewAgentResponse agentResponse = aiInterviewService.processInterviewStep(
                     nextPhase,
                     bridgeAnswer, // Opening의 마지막 답변
@@ -150,54 +152,66 @@ public class QuestionService {
                     0 // 꼬리 질문 횟수 0
             );
 
-            // 에이전트 응답 처리 (null 체크 포함)
-            String questionContent = null;
-            if (agentResponse != null
-                    && agentResponse.action() == InterviewAction.GENERATE_QUESTION
-                    && agentResponse.message() != null) {
-                questionContent = agentResponse.message();
-                log.info("AI 에이전트가 질문 생성 - interviewId: {}, phase: {}", interview.getId(), nextPhase);
-            } else {
-                // Fallback: Agent가 null 반환하거나 질문을 생성하지 않은 경우
-                log.warn("AI 에이전트가 질문 생성하지 않음, Fallback 질문 생성 - interviewId: {}, phase: {}, agentResponse: {}",
-                        interview.getId(), nextPhase, agentResponse != null ? agentResponse.action() : "null");
-                questionContent = generateFallbackQuestion(interview, previousPhase, nextPhase);
-            }
+            // 에이전트 응답 처리 및 저장 (트랜잭션 내부에서 수행)
+            saveAgentQuestion(interview, nextPhase, agentResponse, previousPhase);
 
-            // 질문 저장
-            if (questionContent != null) {
-                int nextSequence = getNextSequence(interview.getId());
-                Question aiQuestion = Question.builder()
-                        .content(questionContent)
-                        .interview(interview)
-                        .phase(nextPhase)
-                        .sequence(nextSequence)
-                        .isFollowUp(false)
-                        .build();
-
-                questionRepository.save(aiQuestion);
-                log.info("첫 질문 생성 완료 - interviewId: {}, phase: {}, questionId: {}",
-                        interview.getId(), nextPhase, aiQuestion.getId());
-            }
         } catch (Exception e) {
             log.error("AI 에이전트를 통한 첫 질문 생성 실패, Fallback 질문 생성 - interviewId: {}, phase: {}",
                     interview.getId(), nextPhase, e);
 
-            // 예외 발생 시에도 Fallback 질문 생성
-            String fallbackQuestion = generateFallbackQuestion(interview, previousPhase, nextPhase);
-            int nextSequence = getNextSequence(interview.getId());
+            // 예외 발생 시에도 Fallback 질문 생성 및 저장
+            saveFallbackQuestion(interview, nextPhase, previousPhase);
+        }
+    }
 
-            Question fallbackQuestionEntity = Question.builder()
-                    .content(fallbackQuestion)
+    @Transactional
+    protected void saveAgentQuestion(Interview interview, InterviewPhase nextPhase,
+            AiInterviewAgentResponse agentResponse, InterviewPhase previousPhase) {
+
+        String questionContent = null;
+        if (agentResponse != null
+                && agentResponse.action() == InterviewAction.GENERATE_QUESTION
+                && agentResponse.message() != null) {
+            questionContent = agentResponse.message();
+            log.info("AI 에이전트가 질문 생성 - interviewId: {}, phase: {}", interview.getId(), nextPhase);
+        } else {
+            // Fallback: Agent가 null 반환하거나 질문을 생성하지 않은 경우
+            log.warn("AI 에이전트가 질문 생성하지 않음, Fallback 질문 생성 - interviewId: {}, phase: {}, agentResponse: {}",
+                    interview.getId(), nextPhase, agentResponse != null ? agentResponse.action() : "null");
+            questionContent = generateFallbackQuestion(interview, previousPhase, nextPhase);
+        }
+
+        if (questionContent != null) {
+            int nextSequence = getNextSequence(interview.getId());
+            Question aiQuestion = Question.builder()
+                    .content(questionContent)
                     .interview(interview)
                     .phase(nextPhase)
                     .sequence(nextSequence)
                     .isFollowUp(false)
                     .build();
 
-            questionRepository.save(fallbackQuestionEntity);
-            log.info("Fallback 질문 저장 완료 - interviewId: {}, phase: {}", interview.getId(), nextPhase);
+            questionRepository.save(aiQuestion);
+            log.info("첫 질문 생성 완료 - interviewId: {}, phase: {}, questionId: {}",
+                    interview.getId(), nextPhase, aiQuestion.getId());
         }
+    }
+
+    @Transactional
+    protected void saveFallbackQuestion(Interview interview, InterviewPhase nextPhase, InterviewPhase previousPhase) {
+        String fallbackQuestion = generateFallbackQuestion(interview, previousPhase, nextPhase);
+        int nextSequence = getNextSequence(interview.getId());
+
+        Question fallbackQuestionEntity = Question.builder()
+                .content(fallbackQuestion)
+                .interview(interview)
+                .phase(nextPhase)
+                .sequence(nextSequence)
+                .isFollowUp(false)
+                .build();
+
+        questionRepository.save(fallbackQuestionEntity);
+        log.info("Fallback 질문 저장 완료 - interviewId: {}, phase: {}", interview.getId(), nextPhase);
     }
 
     /**
@@ -296,7 +310,7 @@ public class QuestionService {
      * 면접의 특정 단계에서 이전 질문 목록을 수집합니다.
      *
      * @param interview 면접 엔티티
-     * @param phase 면접 단계
+     * @param phase     면접 단계
      * @return 해당 단계의 질문 내용 목록
      */
     public List<String> getPreviousQuestions(Interview interview, InterviewPhase phase) {
@@ -312,7 +326,7 @@ public class QuestionService {
      * 최적화: DB 레벨에서 phase 필터링 (전체 조회 후 필터링 → DB 쿼리로 필터링)
      *
      * @param interview 면접 엔티티
-     * @param phase 면접 단계
+     * @param phase     면접 단계
      * @return 해당 단계의 답변 내용 목록
      */
     public List<String> getPreviousAnswers(Interview interview, InterviewPhase phase) {
@@ -330,7 +344,8 @@ public class QuestionService {
      * @param nextPhase     다음 단계
      * @return Fallback 질문 내용
      */
-    private String generateFallbackQuestion(Interview interview, InterviewPhase previousPhase, InterviewPhase nextPhase) {
+    private String generateFallbackQuestion(Interview interview, InterviewPhase previousPhase,
+            InterviewPhase nextPhase) {
         log.debug("Fallback 질문 생성 시작 - interviewId: {}, previousPhase: {}, nextPhase: {}",
                 interview.getId(), previousPhase, nextPhase);
 
@@ -355,8 +370,7 @@ public class QuestionService {
         return List.of(
                 "객체지향 프로그래밍의 4가지 특징(캡슐화, 상속, 다형성, 추상화)에 대해 설명해주시고, 실제로 적용해본 경험이 있다면 말씀해주세요.",
                 "RESTful API의 개념과 설계 원칙에 대해 설명해주시고, 실제 프로젝트에서 어떻게 적용하셨는지 말씀해주세요.",
-                "데이터베이스 인덱스의 동작 원리와 장단점에 대해 설명해주시고, 인덱스를 설계할 때 고려했던 점이 있다면 말씀해주세요."
-        );
+                "데이터베이스 인덱스의 동작 원리와 장단점에 대해 설명해주시고, 인덱스를 설계할 때 고려했던 점이 있다면 말씀해주세요.");
     }
 
     /**
@@ -366,7 +380,6 @@ public class QuestionService {
         return List.of(
                 "팀 프로젝트에서 의견 충돌이 발생했을 때 어떻게 해결하셨는지 구체적인 경험을 말씀해주세요.",
                 "프로젝트 진행 중 예상치 못한 문제가 발생했을 때 어떻게 대처하셨는지 경험을 말씀해주세요.",
-                "본인의 가장 큰 강점과 약점은 무엇이라고 생각하시나요? 약점을 극복하기 위해 어떤 노력을 하고 계신가요?"
-        );
+                "본인의 가장 큰 강점과 약점은 무엇이라고 생각하시나요? 약점을 극복하기 위해 어떤 노력을 하고 계신가요?");
     }
 }
