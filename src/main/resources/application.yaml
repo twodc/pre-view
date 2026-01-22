@@ -102,7 +102,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info  # 프로덕션: 최소한만 노출
+        include: health # info 제외 (보안 강화)
       base-path: /actuator
   endpoint:
     health:
