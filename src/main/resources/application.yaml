@@ -7,6 +7,10 @@ spring:
     virtual:
       enabled: true
 
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+
   config:
     import: optional:file:.env[.properties]
 
