@@ -1,33 +1,13 @@
-# Stage 1: Build
-FROM eclipse-temurin:21-jdk AS builder
-
-WORKDIR /app
-
-# Gradle Wrapper 복사
-COPY gradlew .
-COPY gradle gradle
-RUN chmod +x ./gradlew
-
-# 의존성 캐싱을 위해 build.gradle 먼저 복사
-COPY build.gradle .
-COPY settings.gradle .
-
-# 의존성 다운로드 (캐싱)
-RUN ./gradlew dependencies --no-daemon || true
-
-# 소스 코드 복사 및 빌드
-COPY src src
-RUN ./gradlew bootJar --no-daemon -x test
-
-# Stage 2: Run
+# Deployment Dockerfile (Uses pre-built JAR from GitHub Actions)
 FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# JAR 파일 복사
-COPY --from=builder /app/build/libs/*.jar app.jar
+# GitHub Actions에서 빌드해서 넘겨준 JAR 파일 복사
+# 주의: 로컬에서 빌드하려면 먼저 './gradlew bootJar'를 실행해서 
+#       build/libs/pre-view-0.0.1-SNAPSHOT.jar를 pre-view.jar로 복사해야 함.
+COPY pre-view.jar app.jar
 
-# 애플리케이션 실행
 EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=prod", "app.jar"]
