@@ -29,7 +29,7 @@ jobs:
           echo "Changed files: $CHANGED_FILES"
 
           # 백엔드 변경 감지
-          if echo "$CHANGED_FILES" | grep -qE "^(src/|build.gradle|settings.gradle)"; then
+          if echo "$CHANGED_FILES" | grep -qE "^(src/|build.gradle|settings.gradle|docker-compose.yml|Dockerfile)"; then
             echo "backend=true" >> $GITHUB_OUTPUT
           else
             echo "backend=false" >> $GITHUB_OUTPUT
@@ -90,9 +90,9 @@ jobs:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "build/libs/pre-view-0.0.1-SNAPSHOT.jar"
+          source: "build/libs/pre-view-0.0.1-SNAPSHOT.jar,Dockerfile,docker-compose.yml"
           target: "/home/ec2-user/app/"
-          strip_components: 2
+          strip_components: 0
 
       - name: Rename JAR and Restart Service
         uses: appleboy/ssh-action@v1.0.3
@@ -101,7 +101,7 @@ jobs:
           username: ${{ env.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            mv /home/ec2-user/app/pre-view-0.0.1-SNAPSHOT.jar /home/ec2-user/app/pre-view.jar
+            mv /home/ec2-user/app/build/libs/pre-view-0.0.1-SNAPSHOT.jar /home/ec2-user/app/pre-view.jar
             sudo systemctl restart preview
             sleep 5
             sudo systemctl status preview --no-pager | head -5
@@ -185,7 +185,7 @@ jobs:
             --cidr ${{ steps.ip.outputs.ipv4 }}/32 \
           || echo "Rule may already exist"
 
-      - name: Deploy Frontend to EC2
+      - name: Deploy Frontend Assets to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.EC2_HOST }}
@@ -194,6 +194,16 @@ jobs:
           source: "frontend/dist/*"
           target: "/tmp/preview-frontend/"
           strip_components: 2
+
+      - name: Deploy Frontend Dockerfile to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "frontend/Dockerfile"
+          target: "/tmp/preview-frontend/"
+          strip_components: 1
 
       - name: Move Frontend Files
         uses: appleboy/ssh-action@v1.0.3
