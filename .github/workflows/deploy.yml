@@ -185,15 +185,25 @@ jobs:
             --cidr ${{ steps.ip.outputs.ipv4 }}/32 \
           || echo "Rule may already exist"
 
-      - name: Deploy Frontend to EC2
+      - name: Deploy Frontend Assets to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "frontend/dist/*,frontend/Dockerfile"
+          source: "frontend/dist/*"
           target: "/tmp/preview-frontend/"
           strip_components: 2
+
+      - name: Deploy Frontend Dockerfile to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "frontend/Dockerfile"
+          target: "/tmp/preview-frontend/"
+          strip_components: 1
 
       - name: Move Frontend Files
         uses: appleboy/ssh-action@v1.0.3
