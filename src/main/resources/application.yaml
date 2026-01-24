@@ -56,6 +56,15 @@ spring:
           temperature: 0.5
           max-tokens: 800
 
+# 에러 페이지 보안 설정 - 스택 트레이스 및 민감한 정보 노출 방지
+server:
+  error:
+    include-stacktrace: never      # 스택 트레이스 노출 방지
+    include-message: never         # 에러 메시지 노출 방지
+    include-binding-errors: never  # 바인딩 에러 노출 방지
+    whitelabel:
+      enabled: false               # 기본 에러 페이지 비활성화 (커스텀 에러 핸들러 사용)
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
