@@ -63,8 +63,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",    // OpenAPI 3.0
                                 "/error",             // 에러 페이지
                                 "/actuator/health",   // 헬스 체크 (기본)
-                                "/actuator/health/**", // liveness/readiness probes
-                                "/actuator/prometheus" // Prometheus 메트릭 (모니터링용)
+                                "/actuator/health/**" // liveness/readiness probes
                         ).permitAll()
 
                         // Actuator 상세 정보는 인증 필요 (보안)

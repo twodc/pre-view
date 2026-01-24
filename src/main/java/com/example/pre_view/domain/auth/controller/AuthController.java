@@ -16,6 +16,7 @@ import com.example.pre_view.domain.auth.dto.SignupRequest;
 import com.example.pre_view.domain.auth.dto.TokenReissueRequest;
 import com.example.pre_view.domain.auth.dto.TokenResponse;
 import com.example.pre_view.domain.auth.service.AuthService;
+import com.example.pre_view.domain.auth.jwt.JwtTokenProvider;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * 회원가입
@@ -102,6 +104,12 @@ public class AuthController {
         }
 
         String accessToken = bearerToken.substring(BEARER_PREFIX.length());
+
+        // 토큰 유효성 검증
+        if (!jwtTokenProvider.validateToken(accessToken)) {
+            throw new BusinessException(ErrorCode.INVALID_TOKEN);
+        }
+
         authService.logout(accessToken);
         return ResponseEntity.ok(ApiResponse.ok("로그아웃 되었습니다."));
     }

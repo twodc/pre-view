@@ -98,7 +98,7 @@ public class InterviewService {
     /**
      * 면접 단건 조회 - Redis 캐시 적용 (TTL: 5분)
      */
-    @Cacheable(value = "interview", key = "#interviewId")
+    @Cacheable(value = "interview", key = "#interviewId + '_' + #memberId")
     @Transactional(readOnly = true)
     public InterviewResponse getInterview(Long interviewId, Long memberId) {
         log.debug("면접 조회 (DB) - interviewId: {}, memberId: {}", interviewId, memberId);
@@ -130,7 +130,7 @@ public class InterviewService {
      * 면접 삭제 - 관련 캐시 무효화
      */
     @Caching(evict = {
-            @CacheEvict(value = "interview", key = "#interviewId"),
+            @CacheEvict(value = "interview", key = "#interviewId + '_' + #memberId"),
             @CacheEvict(value = "interviewList", key = "#memberId")
     })
     @Transactional

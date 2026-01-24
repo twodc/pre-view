@@ -14,6 +14,16 @@ management:
       show-details: always  # 상세 정보 항상 표시
       show-components: always
 
+# JPA 설정 (로컬 개발: update로 자동 스키마 생성)
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+
 # 상세 로깅 (로컬에서만)
 logging:
   level:
