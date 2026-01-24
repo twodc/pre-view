@@ -36,6 +36,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class AnswerFacade {
 
+    private static final int MAX_FOLLOW_UP_DEPTH = 2;
+
     private final InterviewRepository interviewRepository;
     private final QuestionRepository questionRepository;
     private final AiInterviewService aiInterviewService;
@@ -99,8 +101,8 @@ public class AnswerFacade {
         // 5. AI 생성 단계(TECHNICAL, PERSONALITY)는 Agent 호출 (트랜잭션 밖)
         int followUpDepth = questionService.calculateFollowUpDepth(question);
 
-        // Follow-up 질문 제한 (최대 2회) - AI가 제한을 어길 수 있으므로 서버에서 강제
-        if (followUpDepth >= 2) {
+        // Follow-up 질문 제한 (최대 MAX_FOLLOW_UP_DEPTH회) - AI가 제한을 어길 수 있으므로 서버에서 강제
+        if (followUpDepth >= MAX_FOLLOW_UP_DEPTH) {
             log.info("Follow-up 질문 제한 도달 - questionId: {}, depth: {}, 강제로 다음 단계 전환",
                     questionId, followUpDepth);
             AiInterviewAgentResponse forcedResponse = new AiInterviewAgentResponse(

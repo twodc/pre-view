@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.example.pre_view.common.BaseEntity;
+import com.example.pre_view.common.exception.InterviewStateException;
 import com.example.pre_view.domain.interview.enums.ExperienceLevel;
 import com.example.pre_view.domain.interview.enums.InterviewPhase;
 import com.example.pre_view.domain.interview.enums.InterviewStatus;
@@ -115,11 +116,11 @@ public class Interview extends BaseEntity {
     /**
      * 다음 면접 단계로 전환합니다.
      *
-     * @throws IllegalStateException 현재 단계가 null인 경우 (면접이 시작되지 않은 상태)
+     * @throws InterviewStateException 현재 단계가 null인 경우 (면접이 시작되지 않은 상태)
      */
     public void nextPhase() {
         if (this.currentPhase == null) {
-            throw new IllegalStateException("면접이 시작되지 않았습니다. start()를 먼저 호출하세요.");
+            throw new InterviewStateException("면접이 시작되지 않았습니다. start()를 먼저 호출하세요.");
         }
 
         List<InterviewPhase> phases = this.type.getPhases();
@@ -127,7 +128,7 @@ public class Interview extends BaseEntity {
 
         // currentPhase가 phases 목록에 없는 경우 방어 (-1 반환 시)
         if (currentIndex < 0) {
-            throw new IllegalStateException("현재 단계가 유효하지 않습니다: " + this.currentPhase);
+            throw new InterviewStateException("현재 단계가 유효하지 않습니다: " + this.currentPhase);
         }
 
         if (currentIndex < phases.size() - 1) {
