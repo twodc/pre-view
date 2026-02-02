@@ -330,6 +330,7 @@ class AuthControllerWebMvcTest {
             @DisplayName("200 OK와 성공 메시지를 반환한다")
             void logout_withValidToken_returns200() throws Exception {
                 // given
+                given(jwtTokenProvider.validateToken(anyString())).willReturn(true);
                 willDoNothing().given(authService).logout(anyString());
 
                 // when & then

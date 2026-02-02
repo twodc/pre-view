@@ -58,11 +58,111 @@ services:
       GROQ_API_KEY: ${GROQ_API_KEY}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       COOKIE_SAME_SITE: ${COOKIE_SAME_SITE:-Lax}
+      STT_SERVICE_URL: http://stt-service:8001
+      TTS_SERVICE_URL: http://tts-service:8002
+      LLM_SERVICE_URL: http://llm-service:8003
+      LLM_ENABLED: ${LLM_ENABLED:-false}
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
+      stt-service:
+        condition: service_healthy
+      tts-service:
+        condition: service_healthy
+      llm-service:
+        condition: service_healthy
+
+  # STT Service (VibeVoice-ASR)
+  stt-service:
+    build:
+      context: ./stt-service
+      dockerfile: Dockerfile
+    container_name: pre-view-stt
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      MODEL_NAME: ${STT_MODEL_NAME:-samedii/VibeVoice-ASR-v1.0-1B}
+      DEVICE: ${STT_DEVICE:-cuda}
+      LOG_LEVEL: ${STT_LOG_LEVEL:-INFO}
+    volumes:
+      - stt_model_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # TTS Service (Qwen3-TTS)
+  tts-service:
+    build:
+      context: ./tts-service
+      dockerfile: Dockerfile
+    container_name: pre-view-tts
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      MODEL_NAME: ${TTS_MODEL_NAME:-Qwen/Qwen3-TTS-1.7B}
+      DEVICE: ${TTS_DEVICE:-cuda}
+      LOG_LEVEL: ${TTS_LOG_LEVEL:-INFO}
+    volumes:
+      - tts_model_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # LLM Service (SGLang + Qwen2.5)
+  llm-service:
+    build:
+      context: ./llm-service
+      dockerfile: Dockerfile
+    container_name: pre-view-llm
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+      - "30000:30000"  # SGLang 서버 포트
+    environment:
+      MODEL_NAME: ${LLM_MODEL_NAME:-Qwen/Qwen2.5-7B-Instruct}
+      DEVICE: ${LLM_DEVICE:-cuda}
+      LOG_LEVEL: ${LLM_LOG_LEVEL:-INFO}
+      SGLANG_PORT: 30000
+      SGLANG_HOST: 0.0.0.0
+    volumes:
+      - llm_model_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s  # LLM 모델 로딩은 더 오래 걸림
 
   # React Frontend (Nginx)
   frontend:
@@ -83,5 +183,8 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  stt_model_cache:
+  tts_model_cache:
+  llm_model_cache:
 
 

@@ -2,11 +2,16 @@ package com.example.pre_view.support;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+
+import com.example.pre_view.domain.stt.service.SttService;
+import com.example.pre_view.domain.tts.service.TtsService;
 
 /**
  * 통합 테스트를 위한 기본 설정 클래스 (Spring Boot 4.0 + Java 21)
@@ -37,7 +42,24 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("integration")
 @Testcontainers
+@Import(TestRestClientConfig.class)
 public abstract class IntegrationTestSupport {
+
+    /**
+     * TTS 서비스 Mock
+     * - 외부 TTS 서비스 호출 방지
+     * - 테스트 속도 향상
+     */
+    @MockitoBean
+    protected TtsService ttsService;
+
+    /**
+     * STT 서비스 Mock
+     * - 외부 STT 서비스 호출 방지
+     * - 테스트 속도 향상
+     */
+    @MockitoBean
+    protected SttService sttService;
 
     /**
      * MySQL 컨테이너 (프로덕션 환경 미러링)

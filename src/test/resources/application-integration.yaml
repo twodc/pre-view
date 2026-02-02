@@ -66,3 +66,16 @@ app:
     secure: false
     same-site: Lax
     domain:
+
+# TTS 설정 (테스트용 - Mock 사용)
+tts:
+  service-url: http://localhost:8002
+  timeout: 10000
+  max-text-length: 2000
+
+# STT 설정 (테스트용 - Mock 사용)
+stt:
+  service-url: http://localhost:8002
+  timeout: 30000
+  max-file-size: 10485760
+  max-duration: 60
