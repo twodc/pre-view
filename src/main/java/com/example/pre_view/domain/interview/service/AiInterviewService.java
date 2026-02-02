@@ -3,13 +3,14 @@ package com.example.pre_view.domain.interview.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
+import com.example.pre_view.common.llm.GroqChatService;
 import com.example.pre_view.domain.answer.dto.AiFeedbackResponse;
 import com.example.pre_view.domain.answer.entity.Answer;
 import com.example.pre_view.domain.interview.dto.AiInterviewAgentResponse;
 import com.example.pre_view.domain.interview.dto.AiReportResponse;
+import com.example.pre_view.domain.interview.enums.InterviewAction;
 import com.example.pre_view.domain.interview.enums.InterviewPhase;
 
 import io.github.resilience4j.retry.annotation.Retry;
@@ -20,21 +21,31 @@ import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 
 import com.example.pre_view.common.service.PromptTemplateService;
+import com.example.pre_view.domain.llm.config.LlmConfig;
+import com.example.pre_view.domain.llm.dto.LlmFeedbackResponse;
+import com.example.pre_view.domain.llm.dto.LlmInterviewResponse;
+import com.example.pre_view.domain.llm.dto.LlmReportResponse;
+import com.example.pre_view.domain.llm.service.LlmService;
 
 /**
  * AI 면접 서비스
  *
- * OpenAI API를 통해 면접 관련 AI 기능을 제공합니다.
+ * OpenAI API 또는 LLM 서비스를 통해 면접 관련 AI 기능을 제공합니다.
  * - 피드백 생성: 답변에 대한 AI 평가
  * - 리포트 생성: 면접 종합 분석
  * - 면접 에이전트: 실시간 질문 생성 및 진행
+ *
+ * llm.enabled=true인 경우 Python LLM 서비스(llm-service:8003) 사용
+ * llm.enabled=false인 경우 Groq API 사용
  */
 @Slf4j
 @Service
 public class AiInterviewService {
 
-    private final ChatClient chatClient;
+    private final GroqChatService groqChatService;
     private final PromptTemplateService promptTemplateService;
+    private final LlmService llmService;
+    private final LlmConfig llmConfig;
 
     // 메트릭
     private final Timer feedbackTimer;
@@ -43,10 +54,12 @@ public class AiInterviewService {
     private final Counter aiCallSuccessCounter;
     private final Counter aiCallFailureCounter;
 
-    public AiInterviewService(ChatClient.Builder builder, PromptTemplateService promptTemplateService,
-            MeterRegistry meterRegistry) {
+    public AiInterviewService(GroqChatService groqChatService, PromptTemplateService promptTemplateService,
+            LlmService llmService, LlmConfig llmConfig, MeterRegistry meterRegistry) {
         this.promptTemplateService = promptTemplateService;
-        this.chatClient = builder.build();
+        this.groqChatService = groqChatService;
+        this.llmService = llmService;
+        this.llmConfig = llmConfig;
 
         // AI 호출 응답 시간 메트릭
         this.feedbackTimer = Timer.builder("ai.feedback.duration")
@@ -73,21 +86,41 @@ public class AiInterviewService {
      */
     @Retry(name = "aiServiceRetry", fallbackMethod = "recoverFeedback")
     public AiFeedbackResponse generateFeedback(InterviewPhase phase, String question, String answer) {
-        log.debug("AI 피드백 생성 시작 - phase: {}", phase);
+        log.debug("AI 피드백 생성 시작 - phase: {}, llmEnabled: {}", phase, llmConfig.isEnabled());
 
+        // LLM 서비스 사용 여부 확인
+        if (llmConfig.isEnabled()) {
+            return generateFeedbackWithLlm(phase, question, answer);
+        }
+
+        // Groq API 사용 (Failover 지원: Qwen → Llama)
         return feedbackTimer.record(() -> {
-            // PromptTemplateService에서 단계별 통합 프롬프트 로드
+            String systemPrompt = promptTemplateService.getFeedbackSystemPrompt();
             String userPrompt = promptTemplateService.buildFeedbackUserPrompt(phase, question, answer);
 
-            AiFeedbackResponse response = chatClient.prompt()
-                    .system(promptTemplateService.getFeedbackSystemPrompt())
-                    .user(userPrompt)
-                    .call()
-                    .entity(AiFeedbackResponse.class);
+            AiFeedbackResponse response = groqChatService.chatCompletion(
+                    systemPrompt, userPrompt, AiFeedbackResponse.class);
 
             aiCallSuccessCounter.increment();
             return response;
         });
+    }
+
+    /**
+     * LLM 서비스를 사용한 피드백 생성
+     */
+    private AiFeedbackResponse generateFeedbackWithLlm(InterviewPhase phase, String question, String answer) {
+        String systemPrompt = promptTemplateService.getFeedbackSystemPrompt();
+        String userPrompt = promptTemplateService.buildFeedbackUserPrompt(phase, question, answer);
+
+        LlmFeedbackResponse llmResponse = llmService.generateFeedback(systemPrompt, userPrompt);
+
+        log.info("LLM 피드백 생성 완료 - score: {}", llmResponse.score());
+        return new AiFeedbackResponse(
+                llmResponse.feedback(),
+                llmResponse.score(),
+                llmResponse.isPassed(),
+                llmResponse.improvementSuggestion());
     }
 
     /**
@@ -110,8 +143,14 @@ public class AiInterviewService {
      */
     @Retry(name = "aiServiceRetry", fallbackMethod = "recoverReport")
     public AiReportResponse generateReport(String context, List<Answer> answers) {
-        log.debug("AI 리포트 생성 시작 - context: {}", context);
+        log.debug("AI 리포트 생성 시작 - context: {}, llmEnabled: {}", context, llmConfig.isEnabled());
 
+        // LLM 서비스 사용 여부 확인
+        if (llmConfig.isEnabled()) {
+            return generateReportWithLlm(context, answers);
+        }
+
+        // Groq API 사용 (Failover 지원: Qwen → Llama)
         return reportTimer.record(() -> {
             String qnaContent = answers.stream()
                     .map(a -> String.format("[%s] Question: %s\nAnswer: %s\nScore: %d",
@@ -121,17 +160,42 @@ public class AiInterviewService {
                             a.getScore()))
                     .collect(Collectors.joining("\n\n"));
 
+            String systemPrompt = promptTemplateService.getFeedbackSystemPrompt();
             String userPrompt = promptTemplateService.buildReportUserPrompt(context, qnaContent);
 
-            AiReportResponse response = chatClient.prompt()
-                    .system(promptTemplateService.getFeedbackSystemPrompt())
-                    .user(userPrompt)
-                    .call()
-                    .entity(AiReportResponse.class);
+            AiReportResponse response = groqChatService.chatCompletion(
+                    systemPrompt, userPrompt, AiReportResponse.class);
 
             aiCallSuccessCounter.increment();
             return response;
         });
+    }
+
+    /**
+     * LLM 서비스를 사용한 리포트 생성
+     */
+    private AiReportResponse generateReportWithLlm(String context, List<Answer> answers) {
+        String qnaContent = answers.stream()
+                .map(a -> String.format("[%s] Question: %s\nAnswer: %s\nScore: %d",
+                        a.getQuestion().getPhase().getDescription(),
+                        a.getQuestion().getContent(),
+                        a.getContent(),
+                        a.getScore()))
+                .collect(Collectors.joining("\n\n"));
+
+        String systemPrompt = promptTemplateService.getFeedbackSystemPrompt();
+        String userPrompt = promptTemplateService.buildReportUserPrompt(context, qnaContent);
+
+        LlmReportResponse llmResponse = llmService.generateReport(systemPrompt, userPrompt);
+
+        log.info("LLM 리포트 생성 완료 - overallScore: {}", llmResponse.overallScore());
+        return new AiReportResponse(
+                llmResponse.summary(),
+                llmResponse.strengths(),
+                llmResponse.improvements(),
+                llmResponse.recommendations(),
+                llmResponse.overallScore(),
+                List.of());  // questionFeedbacks는 별도 매핑 필요 시 추가
     }
 
     /**
@@ -177,8 +241,16 @@ public class AiInterviewService {
             List<String> previousAnswers,
             int currentTopicFollowUpCount) {
 
-        log.debug("AI 면접 에이전트 단계 처리 시작 - phase: {}, followUpCount: {}", phase, currentTopicFollowUpCount);
+        log.debug("AI 면접 에이전트 단계 처리 시작 - phase: {}, followUpCount: {}, llmEnabled: {}",
+                phase, currentTopicFollowUpCount, llmConfig.isEnabled());
 
+        // LLM 서비스 사용 여부 확인
+        if (llmConfig.isEnabled()) {
+            return processInterviewStepWithLlm(phase, previousAnswer, interviewContext, resumeText,
+                    portfolioText, previousQuestions, previousAnswers, currentTopicFollowUpCount);
+        }
+
+        // 기존 Groq API 사용
         return interviewStepTimer.record(() -> {
             String systemPrompt = promptTemplateService.getInterviewAgentSystemPrompt(phase);
 
@@ -202,11 +274,8 @@ public class AiInterviewService {
                         currentTopicFollowUpCount);
             }
 
-            AiInterviewAgentResponse response = chatClient.prompt()
-                    .system(systemPrompt)
-                    .user(userPrompt)
-                    .call()
-                    .entity(AiInterviewAgentResponse.class);
+            AiInterviewAgentResponse response = groqChatService.chatCompletion(
+                    systemPrompt, userPrompt, AiInterviewAgentResponse.class);
 
             log.info("AI 면접 에이전트 응답 생성 완료 - phase: {}, action: {}, message: {}",
                     phase, response.action(), response.message() != null ? "있음" : "없음");
@@ -214,6 +283,76 @@ public class AiInterviewService {
             aiCallSuccessCounter.increment();
             return response;
         });
+    }
+
+    /**
+     * LLM 서비스를 사용한 면접 에이전트 처리
+     */
+    private AiInterviewAgentResponse processInterviewStepWithLlm(
+            InterviewPhase phase,
+            String previousAnswer,
+            String interviewContext,
+            String resumeText,
+            String portfolioText,
+            List<String> previousQuestions,
+            List<String> previousAnswers,
+            int currentTopicFollowUpCount) {
+
+        String systemPrompt = promptTemplateService.getInterviewAgentSystemPrompt(phase);
+
+        String userPrompt;
+        if (previousQuestions == null || previousQuestions.isEmpty()) {
+            // 첫 질문 생성
+            userPrompt = promptTemplateService.buildInterviewAgentFirstQuestionPrompt(
+                    previousAnswer,
+                    interviewContext,
+                    resumeText,
+                    portfolioText,
+                    currentTopicFollowUpCount);
+        } else {
+            // 면접 진행 중
+            userPrompt = promptTemplateService.buildInterviewAgentContinuePrompt(
+                    interviewContext,
+                    resumeText,
+                    portfolioText,
+                    previousQuestions,
+                    previousAnswers,
+                    currentTopicFollowUpCount);
+        }
+
+        LlmInterviewResponse llmResponse = llmService.processInterviewStep(systemPrompt, userPrompt);
+
+        if (llmResponse == null) {
+            // LLM 서비스 실패 시 null 반환 (QuestionService에서 Fallback 처리)
+            return null;
+        }
+
+        log.info("LLM 면접 에이전트 응답 생성 완료 - phase: {}, action: {}, message: {}",
+                phase, llmResponse.action(), llmResponse.message() != null ? "있음" : "없음");
+
+        // LlmInterviewResponse -> AiInterviewAgentResponse 변환
+        // action 문자열을 InterviewAction enum으로 변환
+        InterviewAction action = parseInterviewAction(llmResponse.action());
+
+        return new AiInterviewAgentResponse(
+                llmResponse.thought(),
+                action,
+                llmResponse.message(),
+                llmResponse.evaluation());
+    }
+
+    /**
+     * LLM 응답의 action 문자열을 InterviewAction enum으로 변환
+     */
+    private InterviewAction parseInterviewAction(String actionStr) {
+        if (actionStr == null) {
+            return InterviewAction.NEXT_PHASE;
+        }
+        return switch (actionStr.toUpperCase()) {
+            case "FOLLOW_UP", "NEW_TOPIC", "GENERATE_QUESTION" -> InterviewAction.GENERATE_QUESTION;
+            case "NEXT_PHASE" -> InterviewAction.NEXT_PHASE;
+            default -> InterviewAction.NEXT_PHASE;
+        };
     }
 
     /**

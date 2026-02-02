@@ -118,4 +118,26 @@ public class Member extends BaseEntity {
     public void linkOAuthAccount(OAuthAccount oauthAccount) {
         this.oauthAccounts.add(oauthAccount);
     }
+
+    /**
+     * 사용자 권한 변경 (관리자 전용)
+     */
+    public void updateRole(Role role) {
+        this.role = role;
+    }
+
+    /**
+     * 계정 비활성화 (관리자 전용)
+     * BaseEntity의 delete() 메서드를 활용하여 소프트 삭제
+     */
+    public void deactivate() {
+        super.delete();
+    }
+
+    /**
+     * 계정 활성화 상태 확인
+     */
+    public boolean isActive() {
+        return !isDeleted();
+    }
 }

@@ -1,5 +1,6 @@
 package com.example.pre_view.domain.interview.dto;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.example.pre_view.domain.interview.entity.Interview;
@@ -42,7 +43,7 @@ public record InterviewResponse(
             interview.getPosition().getDescription(),
             interview.getLevel(),
             interview.getLevel().getDescription(),
-            interview.getTechStacks(),
+            interview.getTechStacks() != null ? new ArrayList<>(interview.getTechStacks()) : List.of(),
             interview.getStatus(),
             interview.getCurrentPhase(),
             interview.getCurrentPhase() != null ? interview.getCurrentPhase().getDescription() : null,

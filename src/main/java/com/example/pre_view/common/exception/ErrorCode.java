@@ -52,7 +52,21 @@ public enum ErrorCode {
     // File
     FILE_UPLOAD_ERROR(HttpStatus.BAD_REQUEST, "F001", "파일 업로드 중 오류가 발생했습니다."),
     INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST, "F002", "지원하지 않는 파일 형식입니다. PDF 파일만 업로드 가능합니다."),
-    FILE_READ_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "F003", "파일 읽기 중 오류가 발생했습니다.");
+    FILE_READ_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "F003", "파일 읽기 중 오류가 발생했습니다."),
+
+    // TTS (Text-to-Speech)
+    TTS_SERVICE_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "TTS001", "음성 생성 서비스 오류입니다."),
+    TTS_TEXT_TOO_LONG(HttpStatus.BAD_REQUEST, "TTS002", "텍스트가 너무 깁니다. (최대 2000자)"),
+
+    // STT (Speech-to-Text)
+    STT_SERVICE_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "STT001", "음성 인식 서비스 오류입니다."),
+    STT_AUDIO_TOO_LONG(HttpStatus.BAD_REQUEST, "STT002", "오디오가 너무 깁니다. (최대 60초)"),
+    STT_INVALID_AUDIO_FORMAT(HttpStatus.BAD_REQUEST, "STT003", "지원하지 않는 오디오 형식입니다."),
+    STT_AUDIO_TOO_LARGE(HttpStatus.BAD_REQUEST, "STT004", "오디오 파일이 너무 큽니다. (최대 10MB)"),
+
+    // Admin (관리자)
+    CANNOT_MODIFY_OWN_ROLE(HttpStatus.BAD_REQUEST, "ADMIN001", "자신의 권한은 변경할 수 없습니다."),
+    ALREADY_DEACTIVATED(HttpStatus.BAD_REQUEST, "ADMIN002", "이미 비활성화된 계정입니다.");
 
     private final HttpStatus status;
     private final String code;

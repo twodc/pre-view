@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.pre_view.common.exception.BusinessException;
 import com.example.pre_view.common.exception.ErrorCode;
@@ -19,6 +20,8 @@ import com.example.pre_view.domain.interview.service.AiInterviewService;
 import com.example.pre_view.domain.question.entity.Question;
 import com.example.pre_view.domain.question.repository.QuestionRepository;
 import com.example.pre_view.domain.question.service.QuestionService;
+import com.example.pre_view.domain.stt.dto.TranscriptionResponse;
+import com.example.pre_view.domain.stt.service.SttService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +46,7 @@ public class AnswerFacade {
     private final AiInterviewService aiInterviewService;
     private final AnswerService answerService;
     private final QuestionService questionService;
+    private final SttService sttService;
 
     /**
      * 답변 생성 및 처리
@@ -159,5 +163,40 @@ public class AnswerFacade {
                 aiFeedback,
                 agentResponse
         );
+    }
+
+    /**
+     * 음성 답변 생성 및 처리
+     * 음성 파일을 텍스트로 변환한 후 기존 답변 생성 로직 호출
+     *
+     * @param interviewId 면접 ID (보안 검증용)
+     * @param questionId 질문 ID
+     * @param memberId 현재 사용자 ID (권한 검증용)
+     * @param audioFile 음성 파일
+     * @param language 언어 코드 (ko, en, ja, zh)
+     * @return 답변 응답 DTO
+     */
+    public AnswerResponse createAudioAnswer(Long interviewId, Long questionId, Long memberId,
+                                             MultipartFile audioFile, String language) {
+        log.info("음성 답변 생성 시작 - interviewId: {}, questionId: {}, memberId: {}, 파일명: {}, 언어: {}",
+                interviewId, questionId, memberId, audioFile.getOriginalFilename(), language);
+
+        // 1. STT 서비스를 통해 음성 → 텍스트 변환
+        log.debug("STT 전사 시작 - 파일명: {}, 크기: {} bytes", audioFile.getOriginalFilename(), audioFile.getSize());
+        TranscriptionResponse transcription = sttService.transcribe(audioFile, language);
+        log.info("STT 전사 완료 - 텍스트 길이: {}, 신뢰도: {}, 오디오 길이: {}초",
+                transcription.text().length(), transcription.confidence(), transcription.duration());
+
+        // 2. 변환된 텍스트로 AnswerCreateRequest 생성
+        AnswerCreateRequest request = new AnswerCreateRequest(transcription.text());
+
+        // 3. 기존 createAnswer() 로직 호출
+        log.debug("텍스트 답변 처리 시작 - 변환된 텍스트: {}", transcription.text());
+        AnswerResponse response = createAnswer(interviewId, questionId, memberId, request);
+
+        log.info("음성 답변 생성 완료 - interviewId: {}, questionId: {}, answerId: {}, score: {}",
+                interviewId, questionId, response.id(), response.score());
+
+        return response;
     }
 }

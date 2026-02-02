@@ -25,6 +25,7 @@ import com.example.pre_view.domain.interview.dto.InterviewCreateRequest;
 import com.example.pre_view.domain.interview.dto.InterviewResponse;
 import com.example.pre_view.domain.interview.dto.InterviewResultResponse;
 import com.example.pre_view.domain.interview.service.InterviewService;
+import com.example.pre_view.domain.question.dto.QuestionAudioResponse;
 import com.example.pre_view.domain.question.dto.QuestionListResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -115,6 +116,22 @@ public class InterviewController {
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
+    @GetMapping("/{id}/questions/{questionId}/audio")
+    @Operation(summary = "질문 음성 조회", description = "질문을 음성으로 변환하여 반환합니다.")
+    public ResponseEntity<ApiResponse<QuestionAudioResponse>> getQuestionAudio(
+            @PathVariable("id") Long id,
+            @PathVariable("questionId") Long questionId,
+            @RequestParam(value = "voice", defaultValue = "female_calm") String voice,
+            @RequestParam(value = "format", defaultValue = "wav") String format,
+            @CurrentMemberId Long memberId
+    ) {
+        log.info("질문 음성 조회 API 호출 - interviewId: {}, questionId: {}, voice: {}, format: {}, memberId: {}",
+                id, questionId, voice, format, memberId);
+        QuestionAudioResponse response = interviewService.getQuestionAudio(id, questionId, memberId, voice, format);
+        log.info("질문 음성 조회 완료 - questionId: {}, duration: {}s", questionId, response.duration());
+        return ResponseEntity.ok(ApiResponse.ok("질문 음성이 생성되었습니다.", response));
+    }
+
     @PostMapping("/{id}/questions/{questionId}/answers")
     @Operation(summary = "답변 제출", description = "질문에 대한 답변을 제출하고 AI 피드백을 받습니다.")
     public ResponseEntity<ApiResponse<AnswerResponse>> createAnswer(
@@ -128,6 +145,23 @@ public class InterviewController {
         log.info("답변 제출 완료 - interviewId: {}, questionId: {}, score: {}",
                 id, questionId, response.score());
         return ResponseEntity.ok(ApiResponse.ok("답변이 제출되었습니다.", response));
+    }
+
+    @PostMapping(value = "/{id}/questions/{questionId}/answers/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "음성 답변 제출", description = "음성 파일을 전사하여 답변으로 제출합니다.")
+    public ResponseEntity<ApiResponse<AnswerResponse>> createAudioAnswer(
+            @PathVariable("id") Long id,
+            @PathVariable("questionId") Long questionId,
+            @RequestParam("file") MultipartFile audioFile,
+            @RequestParam(value = "language", defaultValue = "ko") String language,
+            @CurrentMemberId Long memberId
+    ) {
+        log.info("음성 답변 제출 API 호출 - interviewId: {}, questionId: {}, memberId: {}, 파일명: {}, 언어: {}",
+                id, questionId, memberId, audioFile.getOriginalFilename(), language);
+        AnswerResponse response = answerFacade.createAudioAnswer(id, questionId, memberId, audioFile, language);
+        log.info("음성 답변 제출 완료 - interviewId: {}, questionId: {}, score: {}",
+                id, questionId, response.score());
+        return ResponseEntity.ok(ApiResponse.ok("음성 답변이 제출되었습니다.", response));
     }
 
     @GetMapping("/{id}/result")
