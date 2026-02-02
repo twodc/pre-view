@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getQuestions, createAnswer, getInterview } from '../api/interviewApi';
 import Layout from '../components/Layout';
+import VoiceRecorder from '../components/VoiceRecorder';
+import TextToSpeech from '../components/TextToSpeech';
 
 // 백엔드 InterviewPhase enum의 order 순서와 일치
 const PHASE_ORDER = ['OPENING', 'TECHNICAL', 'PERSONALITY', 'CLOSING'];
@@ -278,6 +280,8 @@ const InterviewSession = () => {
                                 {currentQuestion.content}
                             </h2>
                         </div>
+                        {/* TTS 버튼 - 질문 듣기 */}
+                        <TextToSpeech text={currentQuestion.content} />
                     </div>
                 </div>
 
@@ -352,23 +356,30 @@ const InterviewSession = () => {
                         )}
 
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                            <label htmlFor="answer" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                                답변 작성
-                            </label>
+                            <div className="flex items-center justify-between mb-3">
+                                <label htmlFor="answer" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                    답변 작성
+                                </label>
+                                {/* 음성 녹음 버튼 */}
+                                <VoiceRecorder
+                                    onTranscript={(text) => setAnswerContent(prev => prev ? `${prev}\n${text}` : text)}
+                                    disabled={submitting}
+                                />
+                            </div>
                             <textarea
                                 id="answer"
                                 rows={8}
                                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 resize-none text-gray-900 placeholder-gray-400"
-                                placeholder="질문에 대한 답변을 자세히 작성해주세요..."
+                                placeholder="질문에 대한 답변을 자세히 작성해주세요... (또는 음성 입력 버튼을 눌러 말씀하세요)"
                                 value={answerContent}
                                 onChange={(e) => setAnswerContent(e.target.value)}
                                 disabled={submitting}
                             />
                             <p className="mt-2 text-sm text-gray-400">
-                                구체적인 예시와 함께 답변하면 더 좋은 피드백을 받을 수 있습니다.
+                                구체적인 예시와 함께 답변하면 더 좋은 피드백을 받을 수 있습니다. 🎤 음성으로도 답변할 수 있습니다.
                             </p>
                         </div>
 
