@@ -24,10 +24,14 @@ import com.example.pre_view.domain.interview.entity.Interview;
 import com.example.pre_view.domain.interview.enums.InterviewPhase;
 import com.example.pre_view.domain.interview.enums.InterviewStatus;
 import com.example.pre_view.domain.interview.repository.InterviewRepository;
+import com.example.pre_view.domain.question.dto.QuestionAudioResponse;
 import com.example.pre_view.domain.question.dto.QuestionListResponse;
 import com.example.pre_view.domain.question.entity.Question;
 import com.example.pre_view.domain.question.repository.QuestionRepository;
 import com.example.pre_view.domain.question.service.QuestionService;
+import com.example.pre_view.domain.tts.dto.SynthesizeRequest;
+import com.example.pre_view.domain.tts.dto.SynthesizeResponse;
+import com.example.pre_view.domain.tts.service.TtsService;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -52,6 +56,7 @@ public class InterviewService {
     private final FileUploadService fileUploadService;
     private final InterviewStatusService interviewStatusService;
     private final JsonMapper jsonMapper;
+    private final TtsService ttsService;
 
     @CacheEvict(value = "interviewList", key = "#memberId")
     @Transactional
@@ -96,9 +101,8 @@ public class InterviewService {
     }
 
     /**
-     * 면접 단건 조회 - Redis 캐시 적용 (TTL: 5분)
+     * 면접 단건 조회
      */
-    @Cacheable(value = "interview", key = "#interviewId + '_' + #memberId")
     @Transactional(readOnly = true)
     public InterviewResponse getInterview(Long interviewId, Long memberId) {
         log.debug("면접 조회 (DB) - interviewId: {}, memberId: {}", interviewId, memberId);
@@ -217,6 +221,56 @@ public class InterviewService {
     public InterviewResponse uploadPortfolio(Long interviewId, Long memberId, MultipartFile file) {
         getInterviewWithAuth(interviewId, memberId);
         return fileUploadService.uploadPortfolio(interviewId, file);
+    }
+
+    /**
+     * 질문 음성 조회
+     *
+     * @param interviewId 면접 ID
+     * @param questionId 질문 ID
+     * @param memberId 현재 사용자 ID
+     * @param voice 음성 스타일
+     * @param format 오디오 포맷
+     * @return 질문 음성 응답
+     */
+    @Transactional(readOnly = true)
+    public QuestionAudioResponse getQuestionAudio(Long interviewId, Long questionId, Long memberId, String voice, String format) {
+        log.info("질문 음성 조회 시작 - interviewId: {}, questionId: {}, voice: {}, format: {}",
+                interviewId, questionId, voice, format);
+
+        // 1. 면접 권한 확인
+        getInterviewWithAuth(interviewId, memberId);
+
+        // 2. 질문 조회 및 면접 소속 확인
+        Question question = questionRepository.findByIdWithInterview(questionId)
+                .orElseThrow(() -> {
+                    log.warn("질문을 찾을 수 없음 - questionId: {}", questionId);
+                    return new BusinessException(ErrorCode.QUESTION_NOT_FOUND);
+                });
+
+        if (!question.getInterview().getId().equals(interviewId)) {
+            log.warn("질문이 해당 면접에 속하지 않음 - questionId: {}, interviewId: {}, actualInterviewId: {}",
+                    questionId, interviewId, question.getInterview().getId());
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        // 3. TTS 서비스 호출
+        log.debug("TTS 서비스 호출 - text length: {}, voice: {}, format: {}",
+                question.getContent().length(), voice, format);
+        SynthesizeRequest request = new SynthesizeRequest(question.getContent(), voice, null, format);
+        SynthesizeResponse ttsResponse = ttsService.synthesize(request);
+
+        log.info("질문 음성 조회 완료 - questionId: {}, duration: {}s", questionId, ttsResponse.duration());
+
+        // 4. QuestionAudioResponse 반환
+        return new QuestionAudioResponse(
+                question.getId(),
+                question.getContent(),
+                ttsResponse.audioData(),
+                ttsResponse.format(),
+                ttsResponse.duration(),
+                voice
+        );
     }
 
     /**

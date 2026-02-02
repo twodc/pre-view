@@ -16,7 +16,6 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
@@ -42,14 +41,9 @@ public class RedisConfig {
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        // ObjectMapper 설정 (타입 정보 포함)
+        // ObjectMapper 설정 (타입 정보 없이 순수 JSON)
         ObjectMapper objectMapper = JsonMapper.builder()
                 .addModule(new JavaTimeModule())
-                .activateDefaultTyping(
-                        BasicPolymorphicTypeValidator.builder()
-                                .allowIfBaseType(Object.class)
-                                .build(),
-                        ObjectMapper.DefaultTyping.NON_FINAL)
                 .build();
 
         Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
