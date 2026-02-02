@@ -38,7 +38,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: false
@@ -52,9 +52,19 @@ spring:
       base-url: https://api.groq.com/openai
       chat:
         options:
-          model: llama-3.3-70b-versatile
+          model: ${GROQ_PRIMARY_MODEL:qwen/qwen3-32b}
           temperature: 0.5
           max-tokens: 800
+
+# Groq LLM Failover 설정
+groq:
+  api-key: ${GROQ_API_KEY}
+  base-url: https://api.groq.com/openai/v1
+  primary-model: ${GROQ_PRIMARY_MODEL:qwen/qwen3-32b}
+  fallback-model: ${GROQ_FALLBACK_MODEL:llama-3.3-70b-versatile}
+  temperature: 0.5
+  max-tokens: 800
+  timeout: 60000
 
 # 에러 페이지 보안 설정 - 스택 트레이스 및 민감한 정보 노출 방지
 server:
@@ -94,13 +104,13 @@ logging:
 
 # JWT 설정
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:pre-view-jwt-secret-key-for-development-2024-minimum-256-bits}
   access-expiration: 900000      # 15분 (밀리초)
   refresh-expiration: 604800000  # 7일 (밀리초)
 
 # CORS 설정
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://localhost:3003}
 
 # 애플리케이션 설정
 app:
@@ -164,6 +174,14 @@ resilience4j:
     instances:
       aiServiceRetry:
         baseConfig: default
+      sttServiceRetry:
+        baseConfig: default
+      ttsServiceRetry:
+        baseConfig: default
+      llmServiceRetry:
+        baseConfig: default
+        maxAttempts: 2  # LLM은 재시도 적게 (응답이 느림)
+        waitDuration: 2s
   circuitbreaker:
     instances:
       groqApi:
@@ -174,3 +192,30 @@ resilience4j:
         failureRateThreshold: 50       # 50% 이상 실패하면 (5번 중 3번 실패 시)
         waitDurationInOpenState: 10s   # 10초 동안 차단 (Open)
         permittedNumberOfCallsInHalfOpenState: 3 # 10초 뒤 3번만 찔러보기
+
+# STT 서비스 설정 (Python stt-service)
+stt:
+  service-url: ${STT_SERVICE_URL:http://localhost:8001}
+  timeout: 30000
+  max-audio-size: 10485760  # 10MB
+  max-audio-duration: 60    # 60초
+
+# TTS 서비스 설정 (Python tts-service)
+tts:
+  service-url: ${TTS_SERVICE_URL:http://localhost:8002}
+  timeout: 30000
+  max-text-length: 2000
+  default-voice: female_calm
+
+# LLM 서비스 설정 (Python llm-service)
+llm:
+  service-url: ${LLM_SERVICE_URL:http://localhost:8003}
+  timeout: 60000  # LLM은 응답이 느릴 수 있음 (60초)
+  enabled: ${LLM_ENABLED:false}  # 기본값 false (기존 Groq 사용)
+
+# Gradio 음성 서비스 설정 (Kaggle 배포)
+gradio:
+  voice:
+    service-url: ${GRADIO_VOICE_URL:https://69c68f2ddca17ecb93.gradio.live}
+    timeout: 60000
+    enabled: ${GRADIO_VOICE_ENABLED:false}  # Mock 모드 (true로 변경하면 실제 Gradio 연동)
