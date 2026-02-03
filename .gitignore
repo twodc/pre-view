@@ -43,3 +43,7 @@ out/
 
 ### Claude ###
 .claude/
+CLAUDE.md
+
+### Agent Skills ###
+.agents/

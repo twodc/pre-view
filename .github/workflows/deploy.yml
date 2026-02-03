@@ -29,14 +29,14 @@ jobs:
           echo "Changed files: $CHANGED_FILES"
 
           # 백엔드 변경 감지
-          if echo "$CHANGED_FILES" | grep -qE "^(src/|build.gradle|settings.gradle|docker-compose.yml|Dockerfile)"; then
+          if echo "$CHANGED_FILES" | grep -qE "^(apps/api/|docker-compose.yml)"; then
             echo "backend=true" >> $GITHUB_OUTPUT
           else
             echo "backend=false" >> $GITHUB_OUTPUT
           fi
 
           # 프론트엔드 변경 감지
-          if echo "$CHANGED_FILES" | grep -qE "^frontend/"; then
+          if echo "$CHANGED_FILES" | grep -qE "^apps/web/"; then
             echo "frontend=true" >> $GITHUB_OUTPUT
           else
             echo "frontend=false" >> $GITHUB_OUTPUT
@@ -58,9 +58,10 @@ jobs:
           distribution: 'corretto'
 
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+        run: chmod +x apps/api/gradlew
 
       - name: Build with Gradle
+        working-directory: apps/api
         run: ./gradlew clean build -x test
 
       # GitHub Actions 러너 IP를 보안 그룹에 동적으로 추가
@@ -90,7 +91,7 @@ jobs:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "build/libs/pre-view-0.0.1-SNAPSHOT.jar,Dockerfile,docker-compose.yml,init-letsencrypt.sh"
+          source: "apps/api/build/libs/pre-view-0.0.1-SNAPSHOT.jar,apps/api/Dockerfile,infra/docker/compose.yml"
           target: "/home/ec2-user/app/"
           strip_components: 0
 
@@ -101,7 +102,7 @@ jobs:
           username: ${{ env.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            mv /home/ec2-user/app/build/libs/pre-view-0.0.1-SNAPSHOT.jar /home/ec2-user/app/pre-view.jar
+            mv /home/ec2-user/app/apps/api/build/libs/pre-view-0.0.1-SNAPSHOT.jar /home/ec2-user/app/pre-view.jar
             sudo systemctl restart preview
             sleep 5
             sudo systemctl status preview --no-pager | head -5
@@ -152,14 +153,14 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: Install dependencies
-        working-directory: frontend
+        working-directory: apps/web
         run: npm ci
 
       - name: Build frontend
-        working-directory: frontend
+        working-directory: apps/web
         run: npm run build
         env:
           VITE_API_BASE_URL: /api/v1
@@ -191,19 +192,19 @@ jobs:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "frontend/dist/*"
+          source: "apps/web/dist/*"
           target: "/tmp/preview-frontend/"
-          strip_components: 2
+          strip_components: 3
 
-      - name: Deploy Frontend Dockerfile and Config to EC2
+      - name: Deploy Frontend Dockerfile to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.EC2_HOST }}
           username: ${{ env.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "frontend/Dockerfile,frontend/nginx.conf"
-          target: "/home/ec2-user/app/frontend/"
-          strip_components: 1
+          source: "apps/web/Dockerfile"
+          target: "/tmp/preview-frontend/"
+          strip_components: 2
 
       - name: Move Frontend Files
         uses: appleboy/ssh-action@v1.0.3
@@ -216,9 +217,6 @@ jobs:
             sudo cp -r /tmp/preview-frontend/* /var/www/preview/
             sudo chown -R nginx:nginx /var/www/preview
             rm -rf /tmp/preview-frontend/*
-            
-            # Ensure app directory exists
-            mkdir -p /home/ec2-user/app/frontend
 
       - name: Health Check
         uses: appleboy/ssh-action@v1.0.3
