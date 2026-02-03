@@ -29,7 +29,8 @@ const flattenQuestionsByPhase = (grouped) => {
     let flatList = [];
     PHASE_ORDER.forEach(phase => {
         if (grouped[phase]) {
-            const phaseQuestions = grouped[phase].sort((a, b) => a.sequence - b.sequence);
+            // 원본 배열 mutate 방지를 위해 복사 후 정렬
+            const phaseQuestions = [...grouped[phase]].sort((a, b) => a.sequence - b.sequence);
             flatList = [...flatList, ...phaseQuestions];
         }
     });
