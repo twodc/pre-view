@@ -1,0 +1,9 @@
+# HuggingFace Spaces requirements for Qwen3-TTS
+gradio>=4.0.0
+torch>=2.0.0
+transformers>=4.40.0
+accelerate>=0.25.0
+qwen-tts>=0.1.0
+soundfile>=0.12.0
+numpy>=1.24.0
+flash-attn>=2.0.0

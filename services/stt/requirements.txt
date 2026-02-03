@@ -1,0 +1,20 @@
+# FastAPI
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12
+
+# ML/AI (Python 3.14 compatible)
+torch>=2.9.0
+transformers>=4.46.0
+accelerate>=1.1.0
+
+# Audio Processing
+librosa>=0.10.2
+soundfile>=0.12.1
+audioread>=3.0.1
+
+# Utils
+numpy>=1.26.4
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+python-dotenv>=1.0.1

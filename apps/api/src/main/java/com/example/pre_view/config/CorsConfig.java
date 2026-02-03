@@ -7,6 +7,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -27,7 +28,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // 허용할 Origin (프론트엔드 주소) - 환경변수로 설정
-        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        List<String> origins = new ArrayList<>(Arrays.asList(allowedOrigins.split(",")));
         origins.replaceAll(String::strip); // 공백 제거
         config.setAllowedOrigins(origins);
 

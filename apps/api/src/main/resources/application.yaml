@@ -1,0 +1,221 @@
+spring:
+  application:
+    name: pre-view
+
+  # 가상 스레드 활성화 (Java 21+)
+  threads:
+    virtual:
+      enabled: true
+
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+
+  config:
+    import: optional:file:.env[.properties]
+
+  # Spring Security OAuth2 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: email, profile
+
+  # Redis 설정
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  datasource:
+    url: ${MYSQL_URL}
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+        show_sql: false
+    database-platform: org.hibernate.dialect.MySQLDialect
+
+  ai:
+    # Groq API 설정 (OpenAI 호환 API 사용)
+    openai:
+      api-key: ${GROQ_API_KEY}
+      base-url: https://api.groq.com/openai
+      chat:
+        options:
+          model: ${GROQ_PRIMARY_MODEL:qwen/qwen3-32b}
+          temperature: 0.5
+          max-tokens: 800
+
+# Groq LLM Failover 설정
+groq:
+  api-key: ${GROQ_API_KEY}
+  base-url: https://api.groq.com/openai/v1
+  primary-model: ${GROQ_PRIMARY_MODEL:qwen/qwen3-32b}
+  fallback-model: ${GROQ_FALLBACK_MODEL:llama-3.3-70b-versatile}
+  temperature: 0.5
+  max-tokens: 800
+  timeout: 60000
+
+# 에러 페이지 보안 설정 - 스택 트레이스 및 민감한 정보 노출 방지
+server:
+  error:
+    include-stacktrace: never      # 스택 트레이스 노출 방지
+    include-message: never         # 에러 메시지 노출 방지
+    include-binding-errors: never  # 바인딩 에러 노출 방지
+    whitelabel:
+      enabled: false               # 기본 에러 페이지 비활성화 (커스텀 에러 핸들러 사용)
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    try-it-out-enabled: true
+  api-docs:
+    path: /api-docs
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+  use-management-port: false
+
+logging:
+  level:
+    root: INFO
+    com.example.pre_view: DEBUG
+    # 인증 관련 로그 (운영 환경에서는 INFO로 변경)
+    com.example.pre_view.domain.auth: DEBUG
+    # Spring Security 로그 (디버깅 시에만 DEBUG)
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.hibernate: WARN
+    # Redis 연결 로그
+    io.lettuce.core: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:pre-view-jwt-secret-key-for-development-2024-minimum-256-bits}
+  access-expiration: 900000      # 15분 (밀리초)
+  refresh-expiration: 604800000  # 7일 (밀리초)
+
+# CORS 설정
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://localhost:3003}
+
+# 애플리케이션 설정
+app:
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
+  cookie:
+    secure: ${COOKIE_SECURE:false}       # 프로덕션에서는 true (HTTPS)
+    same-site: ${COOKIE_SAME_SITE:Lax}   # Strict, Lax, None
+    domain: ${COOKIE_DOMAIN:}            # 서브도메인 공유 시 설정
+
+# ============================================
+# Actuator 관측성 설정 (프로덕션 기본값 - 최소 노출)
+# 로컬 개발: --spring.profiles.active=local 로 전체 노출
+# ============================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health # info 제외 (보안 강화)
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never  # 프로덕션: 상세 정보 숨김
+      show-components: never
+      probes:
+        enabled: true  # Kubernetes liveness/readiness 지원
+    prometheus:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true  # Resilience4j CircuitBreaker 상태 표시
+    redis:
+      enabled: true
+    db:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true  # 응답 시간 히스토그램
+      percentiles:
+        http.server.requests: 0.5, 0.75, 0.95, 0.99  # 백분위수
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+resilience4j:
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2.0
+        enableRandomizedWait: true
+        randomizedWaitFactor: 0.5
+        retryExceptions:
+          - java.lang.Exception
+    instances:
+      aiServiceRetry:
+        baseConfig: default
+      sttServiceRetry:
+        baseConfig: default
+      ttsServiceRetry:
+        baseConfig: default
+      llmServiceRetry:
+        baseConfig: default
+        maxAttempts: 2  # LLM은 재시도 적게 (응답이 느림)
+        waitDuration: 2s
+  circuitbreaker:
+    instances:
+      groqApi:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED # 횟수 기반 (직관적임)
+        slidingWindowSize: 10          # 최근 10번 요청을 기준으로
+        minimumNumberOfCalls: 5        # 최소 5번은 요청이 와야 계산
+        failureRateThreshold: 50       # 50% 이상 실패하면 (5번 중 3번 실패 시)
+        waitDurationInOpenState: 10s   # 10초 동안 차단 (Open)
+        permittedNumberOfCallsInHalfOpenState: 3 # 10초 뒤 3번만 찔러보기
+
+# STT 서비스 설정 (Python stt-service)
+stt:
+  service-url: ${STT_SERVICE_URL:http://localhost:8001}
+  timeout: 30000
+  max-audio-size: 10485760  # 10MB
+  max-audio-duration: 60    # 60초
+
+# TTS 서비스 설정 (Python tts-service)
+tts:
+  service-url: ${TTS_SERVICE_URL:http://localhost:8002}
+  timeout: 30000
+  max-text-length: 2000
+  default-voice: female_calm
+
+# LLM 서비스 설정 (Python llm-service)
+llm:
+  service-url: ${LLM_SERVICE_URL:http://localhost:8003}
+  timeout: 60000  # LLM은 응답이 느릴 수 있음 (60초)
+  enabled: ${LLM_ENABLED:false}  # 기본값 false (기존 Groq 사용)
+
+# Gradio 음성 서비스 설정 (Kaggle 배포)
+gradio:
+  voice:
+    service-url: ${GRADIO_VOICE_URL:https://69c68f2ddca17ecb93.gradio.live}
+    timeout: 60000
+    enabled: ${GRADIO_VOICE_ENABLED:false}  # Mock 모드 (true로 변경하면 실제 Gradio 연동)

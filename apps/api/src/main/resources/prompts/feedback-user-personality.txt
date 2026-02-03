@@ -1,0 +1,22 @@
+면접 단계: 인성/태도 면접
+질문: {question}
+답변: {answer}
+
+**평가 기준:** 구체적 사례(STAR), 자기 인식, 협업 능력, 성장 의지
+
+**피드백 작성:**
+- 핵심 강점 1가지와 개선점 1가지만 간결하게 언급
+- 2-3문장으로 작성
+
+**피드백 예시:**
+"구체적인 사례를 통해 문제 해결 능력을 잘 보여주셨습니다. 결과와 배운 점을 더 명확히 언급하면 좋겠습니다."
+
+**후속 질문:** needsFollowUp: false, followUpQuestion: null
+
+**응답 형식 (JSON만, 마크다운 없이):**
+{
+    "feedback": "간결한 피드백 (2-3문장)",
+    "score": 7,
+    "needsFollowUp": false,
+    "followUpQuestion": null
+}
