@@ -43,23 +43,23 @@ echo "✅ Docker Compose 확인 완료"
 # 기존 컨테이너 중지 및 제거
 echo ""
 echo "🔄 기존 컨테이너 정리 중..."
-docker compose down --remove-orphans || true
+docker compose -f infra/docker/compose.yml down --remove-orphans || true
 
 # 이미지 빌드 및 컨테이너 실행
 echo ""
 echo "🔨 이미지 빌드 중... (시간이 걸릴 수 있습니다)"
-docker compose build --no-cache
+docker compose -f infra/docker/compose.yml build --no-cache
 
 echo ""
 echo "🚀 컨테이너 시작 중..."
-docker compose up -d
+docker compose -f infra/docker/compose.yml up -d
 
 # 상태 확인
 echo ""
 echo "=========================================="
 echo "📊 컨테이너 상태"
 echo "=========================================="
-docker compose ps
+docker compose -f infra/docker/compose.yml ps
 
 echo ""
 echo "=========================================="
@@ -69,10 +69,10 @@ echo ""
 echo "🌐 접속 URL: http://$(curl -s ifconfig.me 2>/dev/null || echo 'YOUR_EC2_IP')"
 echo ""
 echo "📝 유용한 명령어:"
-echo "   로그 확인:     docker compose logs -f"
-echo "   백엔드 로그:   docker compose logs -f backend"
-echo "   프론트 로그:   docker compose logs -f frontend"
-echo "   상태 확인:     docker compose ps"
-echo "   중지:          docker compose down"
-echo "   재시작:        docker compose restart"
+echo "   로그 확인:     docker compose -f infra/docker/compose.yml logs -f"
+echo "   백엔드 로그:   docker compose -f infra/docker/compose.yml logs -f backend"
+echo "   프론트 로그:   docker compose -f infra/docker/compose.yml logs -f frontend"
+echo "   상태 확인:     docker compose -f infra/docker/compose.yml ps"
+echo "   중지:          docker compose -f infra/docker/compose.yml down"
+echo "   재시작:        docker compose -f infra/docker/compose.yml restart"
 echo ""
