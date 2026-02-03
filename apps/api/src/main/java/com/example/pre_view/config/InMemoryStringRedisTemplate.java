@@ -1,12 +1,18 @@
 package com.example.pre_view.config;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
@@ -22,6 +28,7 @@ import org.springframework.stereotype.Component;
 public class InMemoryStringRedisTemplate extends StringRedisTemplate {
 
     private final ConcurrentHashMap<String, String> store = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicLong> counters = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final InMemoryValueOperations valueOperations = new InMemoryValueOperations();
 
@@ -32,6 +39,7 @@ public class InMemoryStringRedisTemplate extends StringRedisTemplate {
 
     @Override
     public Boolean delete(String key) {
+        counters.remove(key);
         return store.remove(key) != null;
     }
 
@@ -45,7 +53,6 @@ public class InMemoryStringRedisTemplate extends StringRedisTemplate {
         @Override
         public void set(String key, String value, Duration timeout) {
             store.put(key, value);
-            // TTL 후 자동 삭제
             scheduler.schedule(() -> store.remove(key), timeout.toMillis(), TimeUnit.MILLISECONDS);
         }
 
@@ -54,7 +61,6 @@ public class InMemoryStringRedisTemplate extends StringRedisTemplate {
             return store.get(key);
         }
 
-        // 사용하지 않는 메서드들 - 기본 구현
         @Override
         public void set(String key, String value, long timeout, TimeUnit unit) {
             set(key, value, Duration.ofMillis(unit.toMillis(timeout)));
@@ -120,13 +126,31 @@ public class InMemoryStringRedisTemplate extends StringRedisTemplate {
         }
 
         @Override
+        public String setGet(String key, String value, Duration timeout) {
+            String old = store.put(key, value);
+            scheduler.schedule(() -> store.remove(key), timeout.toMillis(), TimeUnit.MILLISECONDS);
+            return old;
+        }
+
+        @Override
+        public String setGet(String key, String value, long timeout, TimeUnit unit) {
+            return setGet(key, value, Duration.ofMillis(unit.toMillis(timeout)));
+        }
+
+        @Override
         public Long increment(String key) {
-            throw new UnsupportedOperationException();
+            AtomicLong counter = counters.computeIfAbsent(key, k -> new AtomicLong(0));
+            long newValue = counter.incrementAndGet();
+            store.put(key, String.valueOf(newValue));
+            return newValue;
         }
 
         @Override
         public Long increment(String key, long delta) {
-            throw new UnsupportedOperationException();
+            AtomicLong counter = counters.computeIfAbsent(key, k -> new AtomicLong(0));
+            long newValue = counter.addAndGet(delta);
+            store.put(key, String.valueOf(newValue));
+            return newValue;
         }
 
         @Override
@@ -136,12 +160,18 @@ public class InMemoryStringRedisTemplate extends StringRedisTemplate {
 
         @Override
         public Long decrement(String key) {
-            throw new UnsupportedOperationException();
+            AtomicLong counter = counters.computeIfAbsent(key, k -> new AtomicLong(0));
+            long newValue = counter.decrementAndGet();
+            store.put(key, String.valueOf(newValue));
+            return newValue;
         }
 
         @Override
         public Long decrement(String key, long delta) {
-            throw new UnsupportedOperationException();
+            AtomicLong counter = counters.computeIfAbsent(key, k -> new AtomicLong(0));
+            long newValue = counter.addAndGet(-delta);
+            store.put(key, String.valueOf(newValue));
+            return newValue;
         }
 
         @Override
@@ -176,27 +206,27 @@ public class InMemoryStringRedisTemplate extends StringRedisTemplate {
         }
 
         @Override
-        public java.util.List<Long> bitField(String key, org.springframework.data.redis.core.BitFieldSubCommands subCommands) {
+        public List<Long> bitField(String key, BitFieldSubCommands subCommands) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public org.springframework.data.redis.core.RedisOperations<String, String> getOperations() {
+        public RedisOperations<String, String> getOperations() {
             return InMemoryStringRedisTemplate.this;
         }
 
         @Override
-        public java.util.List<String> multiGet(java.util.Collection<String> keys) {
+        public List<String> multiGet(Collection<String> keys) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public void multiSet(java.util.Map<? extends String, ? extends String> map) {
+        public void multiSet(Map<? extends String, ? extends String> map) {
             store.putAll(map);
         }
 
         @Override
-        public Boolean multiSetIfAbsent(java.util.Map<? extends String, ? extends String> map) {
+        public Boolean multiSetIfAbsent(Map<? extends String, ? extends String> map) {
             throw new UnsupportedOperationException();
         }
     }
