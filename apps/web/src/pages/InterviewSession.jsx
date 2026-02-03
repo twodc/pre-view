@@ -9,10 +9,19 @@ import TextToSpeech from '../components/TextToSpeech';
 const PHASE_ORDER = ['OPENING', 'TECHNICAL', 'PERSONALITY', 'CLOSING'];
 
 const PHASE_INFO = {
-    OPENING: { label: '인사/자기소개', color: 'blue', icon: '👋' },
-    TECHNICAL: { label: '기술 면접', color: 'cyan', icon: '💻' },
-    PERSONALITY: { label: '인성 면접', color: 'purple', icon: '💭' },
-    CLOSING: { label: '마무리', color: 'emerald', icon: '🎯' }
+    OPENING: { label: '인사/자기소개', icon: '👋' },
+    TECHNICAL: { label: '기술 면접', icon: '💻' },
+    PERSONALITY: { label: '인성 면접', icon: '💭' },
+    CLOSING: { label: '마무리', icon: '🎯' }
+};
+
+// Tailwind JIT 컴파일러를 위한 정적 클래스 매핑
+const PHASE_COLOR_CLASSES = {
+    OPENING: 'bg-blue-50 text-blue-700 border-blue-100',
+    TECHNICAL: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+    PERSONALITY: 'bg-purple-50 text-purple-700 border-purple-100',
+    CLOSING: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    DEFAULT: 'bg-gray-50 text-gray-700 border-gray-100'
 };
 
 const InterviewSession = () => {
@@ -235,7 +244,8 @@ const InterviewSession = () => {
 
     const currentQuestion = questions[currentIndex];
     const isLast = currentIndex === questions.length - 1;
-    const phaseInfo = PHASE_INFO[currentQuestion.phase] || { label: currentQuestion.phaseDescription, color: 'gray', icon: '📝' };
+    const phaseInfo = PHASE_INFO[currentQuestion.phase] || { label: currentQuestion.phaseDescription, icon: '📝' };
+    const phaseColorClass = PHASE_COLOR_CLASSES[currentQuestion.phase] || PHASE_COLOR_CLASSES.DEFAULT;
     const progress = ((currentIndex + 1) / questions.length) * 100;
 
     return (
@@ -247,7 +257,7 @@ const InterviewSession = () => {
                         <div>
                             <h1 className="text-xl font-bold text-gray-900">{interviewTitle}</h1>
                             <div className="flex items-center gap-2 mt-2">
-                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-${phaseInfo.color}-50 text-${phaseInfo.color}-700 border border-${phaseInfo.color}-100`}>
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border ${phaseColorClass}`}>
                                     <span>{phaseInfo.icon}</span>
                                     {phaseInfo.label}
                                 </span>

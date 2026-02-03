@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { synthesizeSpeech } from '../api/voiceApi';
 
 /**
@@ -9,6 +9,7 @@ const TextToSpeech = ({ text, disabled = false }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const audioRef = useRef(null);
 
     const playAudio = async () => {
         if (!text || isPlaying || isLoading) return;
@@ -22,6 +23,7 @@ const TextToSpeech = ({ text, disabled = false }) => {
             if (response.audioData) {
                 // Base64 오디오 데이터를 재생
                 const audio = new Audio(`data:audio/wav;base64,${response.audioData}`);
+                audioRef.current = audio;
 
                 audio.onplay = () => {
                     setIsPlaying(true);
@@ -30,12 +32,14 @@ const TextToSpeech = ({ text, disabled = false }) => {
 
                 audio.onended = () => {
                     setIsPlaying(false);
+                    audioRef.current = null;
                 };
 
                 audio.onerror = () => {
                     setError('오디오 재생 실패');
                     setIsPlaying(false);
                     setIsLoading(false);
+                    audioRef.current = null;
                 };
 
                 await audio.play();
@@ -88,6 +92,13 @@ const TextToSpeech = ({ text, disabled = false }) => {
     };
 
     const stopAudio = () => {
+        // HTMLAudioElement 중지
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current = null;
+        }
+        // Web Speech API 중지
         window.speechSynthesis.cancel();
         setIsPlaying(false);
     };
