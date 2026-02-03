@@ -1,6 +1,10 @@
 # 프로덕션 프로필 (H2 인메모리 DB - 데모/테스트용)
 # 앱 재시작 시 데이터 자동 초기화
 
+server:
+  # nginx 프록시 뒤에서 HTTPS 인식
+  forward-headers-strategy: framework
+
 spring:
   # H2 인메모리 데이터베이스 설정
   datasource:
