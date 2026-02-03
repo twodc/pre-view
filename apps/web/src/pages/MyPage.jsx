@@ -9,7 +9,7 @@ import { Button } from '../components/ui/button';
 
 const MyPage = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
 
     // 프로필 상태
     const [profile, setProfile] = useState(null);
@@ -27,13 +27,16 @@ const MyPage = () => {
     const [totalPages, setTotalPages] = useState(0);
 
     useEffect(() => {
+        // 인증 로딩 중에는 리다이렉트하지 않음
+        if (authLoading) return;
+
         if (!user) {
             navigate('/login');
             return;
         }
         fetchProfile();
         fetchInterviews();
-    }, [user, navigate]);
+    }, [user, authLoading, navigate]);
 
     useEffect(() => {
         fetchInterviews();
@@ -126,7 +129,7 @@ const MyPage = () => {
         }
     };
 
-    if (profileLoading) {
+    if (authLoading || profileLoading) {
         return (
             <Layout>
                 <div className="flex flex-col items-center justify-center py-20">

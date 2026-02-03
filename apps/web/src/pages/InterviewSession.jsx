@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getQuestions, createAnswer, getInterview } from '../api/interviewApi';
+import { useFeatures } from '../context/FeatureContext';
 import Layout from '../components/Layout';
 import VoiceRecorder from '../components/VoiceRecorder';
 import TextToSpeech from '../components/TextToSpeech';
@@ -18,6 +19,7 @@ const PHASE_INFO = {
 const InterviewSession = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { voiceEnabled } = useFeatures();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -280,8 +282,8 @@ const InterviewSession = () => {
                                 {currentQuestion.content}
                             </h2>
                         </div>
-                        {/* TTS 버튼 - 질문 듣기 */}
-                        <TextToSpeech text={currentQuestion.content} />
+                        {/* TTS 버튼 - 질문 듣기 (음성 기능 활성화 시에만 표시) */}
+                        {voiceEnabled && <TextToSpeech text={currentQuestion.content} />}
                     </div>
                 </div>
 
@@ -363,23 +365,25 @@ const InterviewSession = () => {
                                     </svg>
                                     답변 작성
                                 </label>
-                                {/* 음성 녹음 버튼 */}
-                                <VoiceRecorder
-                                    onTranscript={(text) => setAnswerContent(prev => prev ? `${prev}\n${text}` : text)}
-                                    disabled={submitting}
-                                />
+                                {/* 음성 녹음 버튼 (음성 기능 활성화 시에만 표시) */}
+                                {voiceEnabled && (
+                                    <VoiceRecorder
+                                        onTranscript={(text) => setAnswerContent(prev => prev ? `${prev}\n${text}` : text)}
+                                        disabled={submitting}
+                                    />
+                                )}
                             </div>
                             <textarea
                                 id="answer"
                                 rows={8}
                                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 resize-none text-gray-900 placeholder-gray-400"
-                                placeholder="질문에 대한 답변을 자세히 작성해주세요... (또는 음성 입력 버튼을 눌러 말씀하세요)"
+                                placeholder="질문에 대한 답변을 자세히 작성해주세요."
                                 value={answerContent}
                                 onChange={(e) => setAnswerContent(e.target.value)}
                                 disabled={submitting}
                             />
                             <p className="mt-2 text-sm text-gray-400">
-                                구체적인 예시와 함께 답변하면 더 좋은 피드백을 받을 수 있습니다. 🎤 음성으로도 답변할 수 있습니다.
+                                구체적인 예시와 함께 답변하면 더 좋은 피드백을 받을 수 있습니다.{voiceEnabled && ' 🎤 음성으로도 답변할 수 있습니다.'}
                             </p>
                         </div>
 
