@@ -40,10 +40,28 @@ print(f"[Keep-alive] 브라우저 탭을 열어두면 최대 12시간 유지됩�
 print()
 
 # %% Cell 1: 의존성 설치
-!pip install -q gradio transformers accelerate torch soundfile scipy
-!pip install -q bitsandbytes  # 양자화
-!pip install -q pydub  # 오디오 형식 변환
-!apt-get install -qq ffmpeg  # pydub 백엔드
+# Kaggle/Colab 노트북에서 실행 시 아래 명령어를 셀에서 직접 실행하세요:
+# !pip install -q gradio transformers accelerate torch soundfile scipy
+# !pip install -q bitsandbytes  # 양자화
+# !pip install -q pydub  # 오디오 형식 변환
+# !apt-get install -qq ffmpeg  # pydub 백엔드
+
+# Python 스크립트로 실행 시 subprocess 사용
+import subprocess
+import sys
+
+def install_dependencies():
+    """의존성 설치 (스크립트 실행 시)"""
+    packages = ["gradio", "transformers", "accelerate", "torch", "soundfile", "scipy", "bitsandbytes", "pydub"]
+    for pkg in packages:
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", pkg], check=False)
+    # ffmpeg는 시스템에 설치되어 있어야 함 (apt-get 또는 conda로 설치)
+
+# Kaggle 환경에서는 이미 설치되어 있으므로 스킵
+try:
+    import gradio
+except ImportError:
+    install_dependencies()
 
 # %% Cell 2: 라이브러리 임포트
 import torch
@@ -94,25 +112,28 @@ except Exception as e:
     print(f"VibeVoice-ASR failed: {e}")
     print("Falling back to Whisper-large-v3...")
 
-    # Fallback: Whisper-large-v3
+    # Fallback: Whisper-large-v3 (CUDA 가용성 체크)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.float16 if device == "cuda" else torch.float32
+
     stt_model = AutoModelForSpeechSeq2Seq.from_pretrained(
         "openai/whisper-large-v3",
-        torch_dtype=torch.float16,
+        torch_dtype=dtype,
         low_cpu_mem_usage=True,
         use_safetensors=True,
     )
-    stt_model.to("cuda")
+    stt_model.to(device)
     stt_processor = AutoProcessor.from_pretrained("openai/whisper-large-v3")
     stt_pipe = pipeline(
         "automatic-speech-recognition",
         model=stt_model,
         tokenizer=stt_processor.tokenizer,
         feature_extractor=stt_processor.feature_extractor,
-        torch_dtype=torch.float16,
-        device="cuda",
+        torch_dtype=dtype,
+        device=0 if device == "cuda" else -1,
     )
     STT_MODEL_NAME = "Whisper-large-v3"
-    print("Whisper-large-v3 loaded successfully!")
+    print(f"Whisper-large-v3 loaded successfully on {device}!")
 
 # %% Cell 4: TTS 모델 로드 (Qwen3-TTS 또는 대안)
 print("\nLoading TTS model...")

@@ -1,10 +1,12 @@
 # Pre-View 모니터링 & 부하 테스트 가이드
 
+> **참고**: 모든 명령어는 저장소 루트에서 실행하는 것을 기준으로 합니다.
+
 ## 1. 모니터링 스택 실행
 
 ```bash
 # 모니터링 스택 시작 (Prometheus + Grafana)
-cd monitoring
+cd infra/monitoring
 docker-compose up -d
 
 # 상태 확인
@@ -41,13 +43,13 @@ curl http://localhost:8080/actuator/health
 
 ### 일반 부하 테스트 (30 VUs)
 ```bash
-cd load-test
+cd infra/load-test
 k6 run k6-test.js
 ```
 
 ### 고부하 테스트 (300 VUs)
 ```bash
-cd load-test
+cd infra/load-test
 k6 run k6-high-load-test.js
 ```
 
@@ -91,7 +93,7 @@ Grafana 대시보드에서:
 
 ```bash
 # 모니터링 스택 종료
-cd monitoring
+cd infra/monitoring
 docker-compose down
 
 # 볼륨까지 삭제 (완전 초기화)
