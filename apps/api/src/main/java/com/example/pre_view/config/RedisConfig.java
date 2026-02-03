@@ -25,9 +25,12 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
  *
  * 1. StringRedisTemplate: 토큰 저장용 (key-value 모두 String)
  * 2. CacheManager: Spring Cache 추상화 지원 (@Cacheable 등)
+ *
+ * prod 프로필에서는 비활성화되고 InMemoryCacheConfig가 대신 사용됨
  */
 @Configuration
 @EnableCaching
+@org.springframework.context.annotation.Profile("!prod")
 public class RedisConfig {
 
     @Bean

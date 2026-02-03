@@ -1,0 +1,50 @@
+# 프로덕션 프로필 (H2 인메모리 DB - 데모/테스트용)
+# 앱 재시작 시 데이터 자동 초기화
+
+spring:
+  # H2 인메모리 데이터베이스 설정
+  datasource:
+    url: jdbc:h2:mem:preview;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  # H2 콘솔 활성화 (디버깅용)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+
+  jpa:
+    hibernate:
+      ddl-auto: create  # 앱 시작 시 테이블 새로 생성
+    properties:
+      hibernate:
+        format_sql: false
+        show_sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  # Redis 비활성화
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+# Redis 헬스체크 비활성화
+management:
+  health:
+    redis:
+      enabled: false
+
+# 로깅 간소화
+logging:
+  level:
+    root: INFO
+    com.example.pre_view: INFO
+    org.hibernate: WARN
