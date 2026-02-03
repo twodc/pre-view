@@ -6,7 +6,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 WIREMOCK_PORT=9090
 APP_PORT=8080
 RESULTS_DIR="$SCRIPT_DIR/results"
@@ -74,19 +74,15 @@ start_wiremock() {
 # 애플리케이션 빌드 및 실행
 start_app() {
     local virtual_threads=$1
-    local profile_suffix=$2
 
     echo -e "\n${YELLOW}애플리케이션 빌드 중...${NC}"
-    cd "$PROJECT_DIR"
+    cd "$PROJECT_DIR/apps/api"
 
-    # 가상 스레드 설정 변경
+    # 가상 스레드 설정은 실행 시 --spring.threads.virtual.enabled 옵션으로 제어
     if [ "$virtual_threads" = "true" ]; then
         echo -e "${GREEN}가상 스레드: ON${NC}"
     else
         echo -e "${RED}가상 스레드: OFF${NC}"
-        # application-loadtest.yaml에 가상 스레드 OFF 추가
-        sed -i.bak 's/# 가상 스레드 설정/spring:\n  threads:\n    virtual:\n      enabled: false\n\n# 가상 스레드 설정/' \
-            src/main/resources/application-loadtest.yaml 2>/dev/null || true
     fi
 
     # 빌드
@@ -172,19 +168,19 @@ main() {
             ;;
         --test-off)
             start_wiremock
-            start_app "false" "off"
+            start_app "false"
             run_k6_test "virtual_threads_OFF"
             ;;
         --test-on)
             start_wiremock
-            start_app "true" "on"
+            start_app "true"
             run_k6_test "virtual_threads_ON"
             ;;
         --both)
             start_wiremock
 
             # 가상 스레드 OFF 테스트
-            start_app "false" "off"
+            start_app "false"
             run_k6_test "virtual_threads_OFF"
 
             # 잠시 대기
@@ -192,7 +188,7 @@ main() {
             sleep 3
 
             # 가상 스레드 ON 테스트
-            start_app "true" "on"
+            start_app "true"
             run_k6_test "virtual_threads_ON"
 
             # 결과 비교

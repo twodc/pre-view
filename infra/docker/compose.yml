@@ -167,7 +167,7 @@ services:
   # React Frontend (Nginx)
   frontend:
     build:
-      context: ../../apps/web
+      context: ../../frontend
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL}
@@ -177,8 +177,7 @@ services:
       - "80:80"
     depends_on:
       - backend
-    volumes:
-      - /var/www/preview:/usr/share/nginx/html
+    # 볼륨 마운트 제거 - Dockerfile에서 빌드한 assets 사용
 
 volumes:
   mysql_data:
