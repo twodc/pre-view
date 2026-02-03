@@ -32,6 +32,15 @@ public class InMemoryStringRedisTemplate extends StringRedisTemplate {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final InMemoryValueOperations valueOperations = new InMemoryValueOperations();
 
+    /**
+     * Redis 연결 요구를 우회 - 인메모리 구현이므로 연결 불필요
+     */
+    @Override
+    public void afterPropertiesSet() {
+        // 부모 클래스의 afterPropertiesSet()을 호출하지 않음
+        // RedisConnectionFactory 요구를 우회
+    }
+
     @Override
     public ValueOperations<String, String> opsForValue() {
         return valueOperations;
