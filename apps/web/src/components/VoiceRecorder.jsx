@@ -45,13 +45,7 @@ const VoiceRecorder = ({ onTranscript, disabled = false }) => {
 
             // 60초 카운트다운 타이머 시작
             timerRef.current = setInterval(() => {
-                setRemainingTime((prev) => {
-                    if (prev <= 1) {
-                        stopRecording();
-                        return 60;
-                    }
-                    return prev - 1;
-                });
+                setRemainingTime((prev) => prev - 1);
             }, 1000);
         } catch (err) {
             console.error('마이크 접근 오류:', err);
@@ -86,7 +80,7 @@ const VoiceRecorder = ({ onTranscript, disabled = false }) => {
             const audioFile = new File([audioBlob], `recording.${extension}`, { type: mimeType });
 
             const response = await transcribeAudio(audioFile, 'korean');
-            if (response.text) {
+            if (response.text && typeof onTranscript === 'function') {
                 onTranscript(response.text);
             }
         } catch (err) {
@@ -114,6 +108,14 @@ const VoiceRecorder = ({ onTranscript, disabled = false }) => {
             startRecording();
         }
     };
+
+    // 시간 초과 시 녹음 중지
+    useEffect(() => {
+        if (remainingTime <= 0 && isRecording) {
+            stopRecording();
+            setRemainingTime(60);
+        }
+    }, [remainingTime, isRecording]);
 
     // 컴포넌트 언마운트 시 정리
     useEffect(() => {

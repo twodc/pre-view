@@ -24,6 +24,23 @@ const PHASE_COLOR_CLASSES = {
     DEFAULT: 'bg-gray-50 text-gray-700 border-gray-100'
 };
 
+// 질문을 phase 순서대로 평탄화하는 헬퍼 함수
+const flattenQuestionsByPhase = (grouped) => {
+    let flatList = [];
+    PHASE_ORDER.forEach(phase => {
+        if (grouped[phase]) {
+            const phaseQuestions = grouped[phase].sort((a, b) => a.sequence - b.sequence);
+            flatList = [...flatList, ...phaseQuestions];
+        }
+    });
+    Object.keys(grouped).forEach(key => {
+        if (!PHASE_ORDER.includes(key)) {
+            flatList = [...flatList, ...grouped[key]];
+        }
+    });
+    return flatList;
+};
+
 const InterviewSession = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -49,21 +66,7 @@ const InterviewSession = () => {
 
                 const qRes = await getQuestions(id);
                 if (qRes.success) {
-                    const grouped = qRes.data.questionsByPhase;
-                    let flatList = [];
-
-                    PHASE_ORDER.forEach(phase => {
-                        if (grouped[phase]) {
-                            const phaseQuestions = grouped[phase].sort((a, b) => a.sequence - b.sequence);
-                            flatList = [...flatList, ...phaseQuestions];
-                        }
-                    });
-
-                    Object.keys(grouped).forEach(key => {
-                        if (!PHASE_ORDER.includes(key)) {
-                            flatList = [...flatList, ...grouped[key]];
-                        }
-                    });
+                    const flatList = flattenQuestionsByPhase(qRes.data.questionsByPhase);
 
                     const firstUnansweredIndex = flatList.findIndex(q => !q.isAnswered);
                     if (firstUnansweredIndex !== -1) {
@@ -88,23 +91,7 @@ const InterviewSession = () => {
     const refetchQuestions = async () => {
         const qRes = await getQuestions(id);
         if (qRes.success) {
-            const grouped = qRes.data.questionsByPhase;
-            let flatList = [];
-
-            PHASE_ORDER.forEach(phase => {
-                if (grouped[phase]) {
-                    const phaseQuestions = grouped[phase].sort((a, b) => a.sequence - b.sequence);
-                    flatList = [...flatList, ...phaseQuestions];
-                }
-            });
-
-            Object.keys(grouped).forEach(key => {
-                if (!PHASE_ORDER.includes(key)) {
-                    flatList = [...flatList, ...grouped[key]];
-                }
-            });
-
-            return flatList;
+            return flattenQuestionsByPhase(qRes.data.questionsByPhase);
         }
         return null;
     };
