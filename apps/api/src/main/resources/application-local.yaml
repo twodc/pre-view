@@ -1,0 +1,32 @@
+# ============================================
+# 로컬 개발 환경 전용 설정
+# 실행: ./gradlew bootRun --args='--spring.profiles.active=local'
+# ============================================
+
+# Actuator 전체 엔드포인트 노출 (로컬에서만)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"  # 모든 엔드포인트 노출 (prometheus 포함)
+  endpoint:
+    health:
+      show-details: always  # 상세 정보 항상 표시
+      show-components: always
+
+# JPA 설정 (로컬 개발: update로 자동 스키마 생성)
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+
+# 상세 로깅 (로컬에서만)
+logging:
+  level:
+    com.example.pre_view: DEBUG
+    org.springframework.cache: DEBUG  # 캐시 동작 확인용
+    io.micrometer: DEBUG  # 메트릭 수집 확인용

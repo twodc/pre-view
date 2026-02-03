@@ -1,9 +1,22 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 language: "ko-KR"
 early_access: false
+tone_instructions: "모든 리뷰, 코멘트, 요약을 한국어로 작성해주세요. 기술 용어는 영어 그대로 사용해도 됩니다."
 reviews:
   profile: "chill"
   request_changes_workflow: false
   high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  path_instructions:
+    - path: "apps/api/**/*.java"
+      instructions: "Java 21과 Spring Boot 4.0 코드입니다. 한국어로 리뷰해주세요."
+    - path: "apps/web/**/*.{js,jsx,ts,tsx}"
+      instructions: "React 프론트엔드 코드입니다. 한국어로 리뷰해주세요."
+    - path: "services/**/*.py"
+      instructions: "Python 마이크로서비스 코드입니다. 한국어로 리뷰해주세요."
   auto_review:
     enabled: true
     ignore_title_keywords:
@@ -12,12 +25,13 @@ reviews:
     drafts: false
     base_branches:
       - "main"
-      - "master"
       - "develop"
   tools:
     shellcheck:
       enabled: true
     gitleaks:
+      enabled: true
+    ast-grep:
       enabled: true
 chat:
   auto_reply: true

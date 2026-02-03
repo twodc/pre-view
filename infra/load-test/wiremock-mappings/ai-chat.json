@@ -1,0 +1,38 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/v1/chat/completions"
+      },
+      "response": {
+        "status": 200,
+        "fixedDelayMilliseconds": 2000,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "chatcmpl-mock-123",
+          "object": "chat.completion",
+          "created": 1704067200,
+          "model": "llama-3.3-70b-versatile",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "{\"feedback\": \"좋은 답변입니다. 구체적인 예시를 들어 설명해주셨네요.\", \"score\": 8, \"isFollowUpNeeded\": false, \"followUpQuestion\": null}"
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 100,
+            "completion_tokens": 50,
+            "total_tokens": 150
+          }
+        }
+      }
+    }
+  ]
+}
