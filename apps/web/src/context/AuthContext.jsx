@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
                         // 첫 API 호출 시 자동 재발급됨
                         const payload = JSON.parse(atob(accessToken.split('.')[1]));
                         setUser({
-                            memberId: payload.memberId,
+                            memberId: payload.sub,
                             role: payload.role,
                         });
                     } else {
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
                 } else {
                     const payload = JSON.parse(atob(accessToken.split('.')[1]));
                     setUser({
-                        memberId: payload.memberId,
+                        memberId: payload.sub,
                         role: payload.role,
                     });
                 }
@@ -83,10 +83,10 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
 
-        // JWT payload에서 사용자 정보 추출
+        // JWT payload에서 사용자 정보 추출 (sub = memberId)
         const payload = JSON.parse(atob(accessToken.split('.')[1]));
         setUser({
-            memberId: payload.memberId,
+            memberId: payload.sub,
             role: payload.role,
         });
 
@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }) => {
 
         const payload = JSON.parse(atob(accessToken.split('.')[1]));
         setUser({
-            memberId: payload.memberId,
+            memberId: payload.sub,
             role: payload.role,
         });
     };

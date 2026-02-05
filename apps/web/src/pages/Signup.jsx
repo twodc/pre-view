@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getGoogleLoginUrl } from '../api/authApi';
-import { Sparkles, Mail, Lock, User, Check, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, Check, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 const Signup = () => {
@@ -68,7 +68,7 @@ const Signup = () => {
 
         try {
             await signup(formData.email, formData.name, formData.password);
-            navigate('/dashboard');
+            navigate('/create');
         } catch (err) {
             const errorMessage = err.response?.data?.message || '회원가입에 실패했습니다.';
             setError(errorMessage);
@@ -112,11 +112,8 @@ const Signup = () => {
             <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-8">
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">
                     {/* Logo */}
-                    <div className="flex items-center justify-center gap-2 mb-8">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                            <Sparkles className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-2xl font-bold text-gray-900">PreView</span>
+                    <div className="flex items-center justify-center mb-8">
+                        <img src="/logo.png" alt="PreView" className="h-16 mix-blend-multiply" />
                     </div>
 
                     <h2 className="text-center text-3xl font-bold text-gray-900 mb-2">

@@ -37,9 +37,7 @@ const VoiceRecorder = ({ onTranscript, disabled = false }) => {
                 await processAudio(audioBlob);
 
                 // 스트림 정리
-                for (const track of stream.getTracks()) {
-                    track.stop();
-                }
+                stream.getTracks().forEach(track => track.stop());
             };
 
             mediaRecorder.start();
@@ -47,7 +45,13 @@ const VoiceRecorder = ({ onTranscript, disabled = false }) => {
 
             // 60초 카운트다운 타이머 시작
             timerRef.current = setInterval(() => {
-                setRemainingTime((prev) => prev - 1);
+                setRemainingTime((prev) => {
+                    if (prev <= 1) {
+                        stopRecording();
+                        return 60;
+                    }
+                    return prev - 1;
+                });
             }, 1000);
         } catch (err) {
             console.error('마이크 접근 오류:', err);
@@ -76,20 +80,18 @@ const VoiceRecorder = ({ onTranscript, disabled = false }) => {
                 return;
             }
 
-            // Blob을 File로 변환 (실제 MIME 타입에 맞는 확장자 사용)
-            const mimeType = audioBlob.type || 'audio/webm';
-            const extension = mimeType.includes('webm') ? 'webm' : mimeType.includes('ogg') ? 'ogg' : 'webm';
-            const audioFile = new File([audioBlob], `recording.${extension}`, { type: mimeType });
+            // Blob을 File로 변환 (.ogg 확장자로 변경)
+            const audioFile = new File([audioBlob], 'recording.ogg', { type: 'audio/ogg' });
 
             const response = await transcribeAudio(audioFile, 'korean');
-            if (response.text && typeof onTranscript === 'function') {
+            if (response.text) {
                 onTranscript(response.text);
             }
         } catch (err) {
             console.error('음성 인식 오류:', err);
 
             // 개선된 에러 메시지 처리
-            if (err.name === 'TimeoutError' || err.name === 'AbortError' || err.code === 'ECONNABORTED') {
+            if (err.name === 'TimeoutError' || err.code === 'ECONNABORTED') {
                 setError('서버 응답 시간 초과. 다시 시도해주세요.');
             } else if (err.response?.status >= 500) {
                 setError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
@@ -111,23 +113,11 @@ const VoiceRecorder = ({ onTranscript, disabled = false }) => {
         }
     };
 
-    // 시간 초과 시 녹음 중지
-    useEffect(() => {
-        if (remainingTime <= 0 && isRecording) {
-            stopRecording();
-            setRemainingTime(60);
-        }
-    }, [remainingTime, isRecording]);
-
-    // 컴포넌트 언마운트 시 정리
+    // 컴포넌트 언마운트 시 타이머 정리
     useEffect(() => {
         return () => {
             if (timerRef.current) {
                 clearInterval(timerRef.current);
-            }
-            // 녹음 중이면 중지
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-                mediaRecorderRef.current.stop();
             }
         };
     }, []);
