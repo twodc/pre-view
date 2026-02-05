@@ -52,6 +52,26 @@ public class InMemoryStringRedisTemplate extends StringRedisTemplate {
         return store.remove(key) != null;
     }
 
+    @Override
+    public Boolean hasKey(String key) {
+        return store.containsKey(key);
+    }
+
+    @Override
+    public Boolean expire(String key, Duration timeout) {
+        if (store.containsKey(key)) {
+            scheduler.schedule(() -> store.remove(key), timeout.toMillis(), TimeUnit.MILLISECONDS);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public Long getExpire(String key) {
+        // 인메모리 구현에서는 정확한 TTL 추적이 어려우므로 -1 반환 (키 존재하지만 TTL 없음)
+        return store.containsKey(key) ? -1L : -2L;
+    }
+
     private class InMemoryValueOperations implements ValueOperations<String, String> {
 
         @Override

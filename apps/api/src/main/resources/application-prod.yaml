@@ -30,11 +30,12 @@ spring:
         show_sql: false
     database-platform: org.hibernate.dialect.H2Dialect
 
-  # Redis 비활성화
+  # Redis 비활성화 (더미 값 설정)
   data:
     redis:
       host: localhost
       port: 6379
+      enabled: false
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
