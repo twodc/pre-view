@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/",
                                 "/api/v1/auth/**",    // 로그인, 토큰 재발급 등
+                                "/api/v1/config/**",  // 기능 설정 (인증 불필요)
                                 "/api/loadtest/**",   // 부하 테스트용 (loadtest 프로파일에서만 활성화)
                                 "/oauth2/**",         // OAuth2 관련 경로
                                 "/login/**",          // 로그인 페이지

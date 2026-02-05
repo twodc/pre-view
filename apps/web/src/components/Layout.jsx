@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Menu, X, FileText, Plus, User } from 'lucide-react';
+import { Menu, X, Plus, User } from 'lucide-react';
 
 const Layout = ({ children }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -28,11 +28,8 @@ const Layout = ({ children }) => {
                 <div className="max-w-6xl mx-auto px-5">
                     <div className="flex justify-between h-16 items-center">
                         {/* Logo */}
-                        <Link to="/" className="flex items-center gap-2">
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                                <Sparkles className="w-5 h-5 text-white" />
-                            </div>
-                            <span className="text-xl font-bold text-gray-900">PreView</span>
+                        <Link to="/" className="flex items-center">
+                            <img src="/logo.png" alt="PreView" className="h-16 mix-blend-multiply" />
                         </Link>
 
                         {/* Desktop Navigation */}
@@ -41,11 +38,10 @@ const Layout = ({ children }) => {
                                 <Link
                                     key={item.path}
                                     to={item.path}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                        isActive(item.path)
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive(item.path)
                                             ? 'bg-blue-50 text-blue-600'
                                             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                    }`}
+                                        }`}
                                 >
                                     <item.icon className="w-4 h-4" />
                                     {item.label}
@@ -81,11 +77,10 @@ const Layout = ({ children }) => {
                                 key={item.path}
                                 to={item.path}
                                 onClick={() => setIsMobileMenuOpen(false)}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                                    isActive(item.path)
+                                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${isActive(item.path)
                                         ? 'bg-blue-50 text-blue-600'
                                         : 'text-gray-600 hover:bg-gray-100'
-                                }`}
+                                    }`}
                             >
                                 <item.icon className="w-5 h-5" />
                                 {item.label}
